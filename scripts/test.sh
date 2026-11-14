@@ -5,7 +5,15 @@ mkdir -p .build/module-cache .build/cache
 export CLANG_MODULE_CACHE_PATH="$PWD/.build/module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="$PWD/.build/module-cache"
 # Command Line Tools ships Testing.framework outside the SDK framework search path.
-developer_frameworks="$(xcode-select -p)/Library/Developer/Frameworks"
+developer_dir="$(xcode-select -p)"
+developer_frameworks="$developer_dir/Library/Developer/Frameworks"
+if [[ ! -d "$developer_frameworks/Testing.framework" ]]; then
+    developer_frameworks="$developer_dir/Platforms/MacOSX.platform/Developer/Library/Frameworks"
+fi
+if [[ ! -d "$developer_frameworks/Testing.framework" ]]; then
+    printf 'Swift Testing framework not found in the active developer tools. Select Xcode 16+ or recent Command Line Tools.\n' >&2
+    exit 1
+fi
 swift test --disable-sandbox --disable-xctest --enable-swift-testing --cache-path "$PWD/.build/cache" \
   -Xswiftc -F -Xswiftc "$developer_frameworks" \
   -Xlinker -F -Xlinker "$developer_frameworks" \

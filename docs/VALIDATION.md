@@ -1,5 +1,11 @@
 # SwiftReveal validation
 
+## Icon and distribution packaging
+
+Option A (Azure stacked slides) is installed in the app bundle. macOS successfully decoded the ICNS file for inspection. All 53 application tests and three packaging tests pass. Apple silicon and Intel release builds compile and pass strict ad-hoc signature verification. Both ZIPs contain the expected architecture, version and icon; their checksums match SHA256SUMS and the generated cask. Both archives pass the source-reference and credential-pattern scans. Homebrew's installed cask loader successfully parses the generated cask; no installation was performed.
+
+GitHub Actions workflows have been added for tests and releases. Their YAML parses locally, but remote execution, asset downloads and Homebrew installation await publication. Publishing from this session is blocked: shell GitHub DNS resolution fails, and the connected GitHub integration rejects writes to the destination repository with HTTP 403. No public release or tap update is claimed.
+
 ## 0.4.0 public release preparation
 
 53 automated tests pass. The default palette is Azure, the examples are generic, the project has an MIT licence, and release packaging uses a neutral disposable build path. See RELEASE_CHECKS.md for source, history and binary audit scope. Native visual testing remains pending as described below.
@@ -46,4 +52,4 @@ The app includes **Help → Run Integration Checks…** so the complete WebKit/P
 
 ## Distribution
 
-The app is locally ad-hoc signed. It is not Developer ID signed or notarized and has not been tested on another Mac. An Apple silicon ZIP is produced by the build script. The source tree is tracked in its own local Git repository; no remote repository or public publishing was created.
+The app is locally ad-hoc signed. It is not Developer ID signed or notarized and has not been tested on another Mac. An Apple silicon ZIP is produced by the build script. The source tree has an audited local Git history and a configured GitHub origin. Distribution scripts and GitHub Actions prepare both architectures and the Homebrew cask; see DISTRIBUTION.md.

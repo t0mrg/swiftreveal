@@ -32,6 +32,7 @@ rm -rf "$app_dir"
 mkdir -p "$app_dir/Contents/MacOS" "$app_dir/Contents/Resources"
 cp "$binary_dir/SwiftReveal" "$app_dir/Contents/MacOS/SwiftReveal"
 cp "$project_dir/packaging/Info.plist" "$app_dir/Contents/Info.plist"
+cp "$project_dir/packaging/AppIcon.icns" "$app_dir/Contents/Resources/AppIcon.icns"
 printf 'APPL????' > "$app_dir/Contents/PkgInfo"
 
 resource_bundle="$binary_dir/SwiftReveal_SwiftRevealCore.bundle"

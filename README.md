@@ -2,6 +2,20 @@
 
 A native macOS editor for structured slide presentations. Edit content and select a layout; consistent rules handle margins, alignment, spacing and typography.
 
+## Install
+
+Download the appropriate ZIP from [GitHub Releases](https://github.com/t0mrg/swiftreveal/releases/latest): `arm64` for Apple silicon or `x86_64` for Intel. Unzip it and move **SwiftReveal.app** to Applications.
+
+After the first release and cask have been published, install with Homebrew:
+
+```sh
+brew install --cask t0mrg/tap/swiftreveal
+```
+
+Requires macOS 14 or newer. The app is ad-hoc signed and is not yet notarized by Apple. If macOS blocks the first launch of this trusted download, attempt to open the app, then use **System Settings → Privacy & Security → Open Anyway**. Homebrew does not disable quarantine automatically.
+
+See [distribution instructions](docs/DISTRIBUTION.md) for publishing releases and updating the cask.
+
 ## Run the testing build
 
 Open `dist/SwiftReveal.app`, then choose **New Document** (or **File → New**). New documents start with a single title slide and no content blocks. An editable tutorial deck remains available in `Examples/Getting-Started.swiftreveal`. Save your own copy with **File → Save** (`⌘S`). The app uses `.swiftreveal` files, portable JSON containing the presentation and embedded figures. The example chart and values are illustrative, not real-world data.
@@ -72,7 +86,7 @@ Export creates a separate file. Save the editable `.swiftreveal` document as wel
 ./dist/SwiftReveal.app/Contents/MacOS/SwiftReveal --smoke-test "$PWD/.build/qa"
 ```
 
-Command-line developer tools and Swift 6+ are sufficient; full Xcode and external package downloads are not required. Build scripts keep compiler caches inside the project. The smoke command requires a normal logged-in GUI session: it launches a real AppKit/WebKit process, validates rendered slides and PDF output, and writes private diagnostic artifacts under `.build/qa` before exiting. In a restricted command runner that cannot connect to the Mac GUI session, use **Help → Run Integration Checks…** instead. That command writes its report and sample renderings to `/tmp/SwiftReveal-QA` and leaves the editor open.
+Command-line developer tools and Swift 6+ are sufficient; full Xcode and external package downloads are not required. Tests keep compiler caches inside the project; release builds use disposable neutral temporary paths. The smoke command requires a normal logged-in GUI session: it launches a real AppKit/WebKit process, validates rendered slides and PDF output, and writes private diagnostic artifacts under `.build/qa` before exiting. In a restricted command runner that cannot connect to the Mac GUI session, use **Help → Run Integration Checks…** instead. That command writes its report and sample renderings to `/tmp/SwiftReveal-QA` and leaves the editor open.
 
 The `Examples` directory contains an editable sample and an offline HTML export. To regenerate them, run `swift run SwiftRevealTool generate-examples "$PWD/Examples"` using the same cache environment as the build scripts.
 
@@ -88,4 +102,4 @@ Local documents and exports stay on your Mac. No account, server or runtime netw
 
 SwiftReveal is released under the [MIT License](LICENSE). Vendored reveal.js is also MIT-licensed; its original notices are retained. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-Icon concepts for review are in `Assets/IconOptions`; no concept is installed as the final app icon yet.
+The Azure stacked-slides icon (option A) is installed as the app icon. Alternative concepts remain in `Assets/IconOptions`.

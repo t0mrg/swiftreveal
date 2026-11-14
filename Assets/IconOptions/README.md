@@ -8,4 +8,4 @@ Three original concepts created for SwiftReveal, in review order:
 | B | indigo-code.png | Presentation screen and code brackets |
 | C | paper-reveal.png | Folded paper, ink and amber |
 
-These are concept previews. A selected design should receive a final small-size and transparency-edge review before conversion into the application's production icon. No concept has been installed automatically. The artwork is included under the repository's MIT licence.
+Option A is installed as the production app icon in `packaging/AppIcon.icns`, with representations from 16 to 1024 pixels. Options B and C remain alternative concept previews. The artwork is included under the repository's MIT licence.

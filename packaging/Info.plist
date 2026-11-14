@@ -8,6 +8,8 @@
     <string>SwiftReveal</string>
     <key>CFBundleExecutable</key>
     <string>SwiftReveal</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>org.swiftreveal.app</string>
     <key>CFBundleInfoDictionaryVersion</key>

@@ -12,3 +12,6 @@ dist/
 *.pfx
 *.mobileprovision
 *.log
+
+__pycache__/
+*.pyc

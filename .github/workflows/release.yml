@@ -1,0 +1,75 @@
+name: Release macOS app
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check release version
+        shell: bash
+        run: |
+          version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' packaging/Info.plist)
+          if [[ "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" != "v$version" ]]; then
+            echo 'Tag does not match Info.plist version' >&2
+            exit 1
+          fi
+          echo "RELEASE_TAG=v$version" >> "$GITHUB_ENV"
+      - name: Test and package both architectures
+        run: ./scripts/prepare-release.sh
+      - name: Keep build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SwiftReveal-release
+          path: |
+            dist/*.zip
+            dist/SHA256SUMS
+            dist/swiftreveal.rb
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo 'Release already exists; assets are immutable in this workflow.' >&2
+            exit 1
+          fi
+          gh release create "$RELEASE_TAG" --target "$GITHUB_SHA" \
+            --title "SwiftReveal ${RELEASE_TAG#v}" --notes-file docs/RELEASE_NOTES.md --draft
+          gh release upload "$RELEASE_TAG" dist/SwiftReveal-macOS-arm64.zip \
+            dist/SwiftReveal-macOS-x86_64.zip dist/SHA256SUMS dist/swiftreveal.rb
+          gh release edit "$RELEASE_TAG" --draft=false
+      - name: Update Homebrew tap (optional)
+        env:
+          GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo 'No TAP_GITHUB_TOKEN set. Copy the release swiftreveal.rb asset to t0mrg/homebrew-tap/Casks/.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          sha=$(gh api repos/t0mrg/homebrew-tap/contents/Casks/swiftreveal.rb --jq .sha 2>/dev/null || true)
+          python3 - "$RELEASE_TAG" "$sha" <<'PY'
+          import base64, json, sys
+          from pathlib import Path
+          payload = {'message': f'Update SwiftReveal to {sys.argv[1]}',
+                     'content': base64.b64encode(Path('dist/swiftreveal.rb').read_bytes()).decode()}
+          if sys.argv[2]:
+              payload['sha'] = sys.argv[2]
+          Path('dist/tap-update.json').write_text(json.dumps(payload))
+          PY
+          gh api --method PUT repos/t0mrg/homebrew-tap/contents/Casks/swiftreveal.rb --input dist/tap-update.json >/dev/null
