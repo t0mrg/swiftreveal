@@ -1,0 +1,49 @@
+# SwiftReveal validation
+
+## 0.4.0 public release preparation
+
+53 automated tests pass. The default palette is Azure, the examples are generic, the project has an MIT licence, and release packaging uses a neutral disposable build path. See RELEASE_CHECKS.md for source, history and binary audit scope. Native visual testing remains pending as described below.
+
+## 0.3.0 typography, safe rich text and CSS themes
+
+51 automated tests pass across eight suites. The native application compiles with slide/block font-scale controls, the CSS editor and the reusable theme library. Tests cover backward-compatible document loading; scale bounds, persistence and compound scopes; mixed Markdown/HTML sanitization and attack payloads; theme portability; safe CSS embedding; deterministic output; and exact content-security-policy hashes for every trusted script.
+
+The renderer now measures unscaled computed font sizes before applying slide × block factors, so custom CSS font sizes also scale without repeated inheritance multiplication. The opt-in in-app integration suite checks actual computed sizes, mixed formatting, custom CSS and script suppression. Those WebKit runtime checks and native theme save/load interaction remain pending under the GUI restrictions recorded below; they are not implied by the unit-test passes.
+
+The updated application is rebuilt and ad-hoc signature verification is performed by the build script.
+
+## 0.2.0 appearance update
+
+The update adds nine shared themes, per-block and table-header colour overrides, embedded slide background images, an empty title-only new-document default, and a cached navigator thumbnail renderer shared with the production slide renderer. Version 1 documents without appearance fields remain compatible.
+
+27 automated tests pass. The complete native application compiles with the new controls and thumbnail service. The in-app integration suite now checks computed colours, thumbnail invalidation and image backgrounds as well as the existing PDF checks. Runtime visual checks of these additions remain pending under the host GUI restrictions described below.
+
+The release app is rebuilt and ad-hoc signature verification is performed by the build script. No system permissions or settings are changed.
+
+## Original release evidence
+
+Date: 14 November 2026. Host: Apple silicon, macOS 26.6.2, Swift 6.3.3, Command Line Tools SDK. The app deployment target is macOS 14. Earlier supported OS versions have not been exercised.
+
+## Passed
+
+- Release build compiled and linked the complete native app.
+- `codesign --verify --deep --strict` accepted the ad-hoc signed application bundle.
+- Application property list validated with `plutil`.
+- 16 automated Swift Testing tests passed, covering document serialization and schema rejection, embedded bytes, duplicate identities, table parsing, all layout starter models, text escaping, image MIME restrictions, full dependency license in HTML, offline resource embedding and content preservation across layouts.
+- App launched through the normal Mac application launcher.
+- Created a new document through the native **New Document** button.
+- Inspected the live editor's accessibility tree: all eight sample slides, title/subtitle fields, block controls, layouts, notes and export/presentation toolbar are present. WebKit displayed the first slide's expected title, callout, footer and text. No overflow warning was present for that slide.
+- Generated an editable sample document and a self-contained HTML example through the headless core utility.
+
+## Not verified in this session
+
+- Full visual inspection, native editing/save/reopen/undo interaction, PDF runtime output and all-slide overflow smoke checks remain to be exercised.
+- A direct command-runner launch of the GUI smoke harness aborted in Apple's application-registration code before reaching the app, because that runner cannot register with the GUI session. The app itself launched normally through the native launcher.
+- Further native computer-use inspection was blocked by the Mac's screen-capture permission. No permission or system setting was changed.
+- The browser tool disallowed a local `file:` URL, so it could not inspect the exported sample. No alternate route was used to bypass that restriction.
+
+The app includes **Help → Run Integration Checks…** so the complete WebKit/PDF suite can run inside the normally launched application. It writes JSON results, every sample slide as a PNG, the editable sample, exported HTML and PDF into `/tmp/SwiftReveal-QA`. Review those results along with the manual checklist in TESTING.md before relying on exports for a real talk.
+
+## Distribution
+
+The app is locally ad-hoc signed. It is not Developer ID signed or notarized and has not been tested on another Mac. An Apple silicon ZIP is produced by the build script. The source tree is tracked in its own local Git repository; no remote repository or public publishing was created.
