@@ -14,7 +14,7 @@ Run:
 
 This runs the Swift and packaging tests, builds both architectures from neutral temporary paths, verifies ad-hoc signatures, generates checksums and a cask, pushes `main`, creates a draft GitHub release for the exact source commit, uploads assets, publishes the release, and creates or updates only `Casks/swiftreveal.rb` in your existing tap. Existing release assets are never silently overwritten. No GitHub or Apple credentials are stored in this repository.
 
-The prepared local `v0.4.0` tag points to the icon and distribution release commit. Once a version is published, increment `CFBundleShortVersionString` and `CFBundleVersion` in `packaging/Info.plist`; never move a published tag or replace its release assets.
+Once a version is published, increment `CFBundleShortVersionString` and `CFBundleVersion` in `packaging/Info.plist`; never move a published tag or replace its release assets.
 
 If upload is interrupted, finish the draft through GitHub's release page or `gh release upload`; do not change archives whose checksums have already been published. If the tap update fails, copy `swiftreveal.rb` from the published release into `Casks/swiftreveal.rb` in the tap and commit it. Publish a new release when the source changes.
 
@@ -28,11 +28,13 @@ Use either the local publishing script or a tag-triggered release for a version,
 
 ## Installing
 
-Once the release and cask have been published:
+Install the released app:
 
 ```sh
 brew install --cask t0mrg/tap/swiftreveal
 ```
+
+Upgrade an existing installation with `brew update` followed by `brew upgrade --cask t0mrg/tap/swiftreveal`. The first command refreshes metadata; the second installs the version recorded in the updated cask.
 
 Alternatively, download the matching architecture ZIP from the latest GitHub release. The cask verifies the SHA-256 and installs the app; it does not remove macOS quarantine or change security settings. This intentionally improves on the older cask's automatic quarantine removal. Because the app is not notarized, first launch may need **System Settings → Privacy & Security → Open Anyway** after trying to open it.
 

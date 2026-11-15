@@ -2,25 +2,44 @@
 
 A native macOS editor for structured slide presentations. Edit content and select a layout; consistent rules handle margins, alignment, spacing and typography.
 
+## Features
+
+- Eight structured layouts with automatic margins, alignment and spacing.
+- Multiple presentation windows, navigator multiselection and cross-presentation slide copy/paste above the target selection. Slides inherit the receiving theme while retaining custom colours and embedded content.
+- Mermaid flowcharts and causal DAGs rendered as offline SVG, with centred labels and consistent HTML/PDF output.
+- Markdown, safe HTML and fenced code blocks with syntax highlighting and preserved indentation.
+- Nine themes, per-block/table colours, slide background images, a deck CSS editor and reusable custom themes.
+- Independent slide/block font scaling and horizontal/vertical title-slide centring.
+- Live previews and navigator thumbnails, speaker notes, presentation mode, and self-contained reveal.js HTML/PDF export.
+
 ## Install
 
 Download the appropriate ZIP from [GitHub Releases](https://github.com/t0mrg/swiftreveal/releases/latest): `arm64` for Apple silicon or `x86_64` for Intel. Unzip it and move **SwiftReveal.app** to Applications.
 
-After the first release and cask have been published, install with Homebrew:
+Install with Homebrew:
 
 ```sh
 brew install --cask t0mrg/tap/swiftreveal
 ```
 
+To upgrade an existing installation:
+
+```sh
+brew update
+brew upgrade --cask t0mrg/tap/swiftreveal
+```
+
+`brew update` refreshes cask metadata; `brew upgrade` installs the new app version. Quit SwiftReveal before upgrading, then reopen it.
+
 Requires macOS 14 or newer. The app is ad-hoc signed and is not yet notarized by Apple. If macOS blocks the first launch of this trusted download, attempt to open the app, then use **System Settings → Privacy & Security → Open Anyway**. Homebrew does not disable quarantine automatically.
 
 See [distribution instructions](docs/DISTRIBUTION.md) for publishing releases and updating the cask.
 
-## Run the testing build
+## Run a local build
 
 Open `dist/SwiftReveal.app`, then choose **New Document** (or **File → New**). New documents start with a single title slide and no content blocks. An editable tutorial deck remains available in `Examples/Getting-Started.swiftreveal`. Save your own copy with **File → Save** (`⌘S`). The app uses `.swiftreveal` files, portable JSON containing the presentation and embedded figures. The example chart and values are illustrative, not real-world data.
 
-Requires macOS 14 or newer. The supplied build is for Apple silicon and is locally ad-hoc signed, not notarized. It is intended for testing on this Mac. Building from source on an Intel Mac produces an Intel build.
+Release ZIPs are provided for both Apple silicon and Intel Macs. The local build script defaults to the architecture of the build machine; use `SWIFTREVEAL_ARCH=arm64` or `SWIFTREVEAL_ARCH=x86_64` to select one explicitly.
 
 ## Multiple windows and copying slides
 
@@ -145,11 +164,11 @@ See [PLAN.md](PLAN.md) for scope and architecture, [docs/TESTING.md](docs/TESTIN
 
 Add Slide and Add Block use regular buttons with popover choices, so insertion is independent of native menu tracking. Background WebKit rendering runs in nonactivating, mouse-ignoring panels excluded from document focus and the Window menu.
 
-If the macOS menu bar does not open while text fields and normal buttons still work, use the toolbar **Diagnostics** button. It saves application/window state and menu-tracking events to `/tmp/SwiftReveal-Diagnostics/menu-state.json` and provides a copy button. The report excludes slide contents, document names and typed text. The user confirmed insertion works with the popovers; the macOS menu-bar failure remains under investigation. Diagnostics include menu ownership and structure, plus a **Reconnect menu bar** button that re-registers the current menu with AppKit.
+If the macOS menu bar does not open while text fields and normal buttons still work, use the toolbar **Diagnostics** button. It saves application/window state and menu-tracking events to `/tmp/SwiftReveal-Diagnostics/menu-state.json` and provides a copy button. The report excludes slide contents, document names and typed text. A machine-specific native-menu issue remains under investigation. The New window/Open and Copy/Paste controls provide access without the menu bar. Diagnostics include menu ownership and structure, plus a **Reconnect menu bar** button that re-registers the current menu with AppKit.
 
 ## Current boundaries
 
-This is a first testing release, not a PowerPoint replacement for arbitrary legacy decks. No PPTX import/export, arbitrary HTML import, collaboration, AI service or arbitrary drawing canvas. Custom plots are imported as figures. It does not infer scientific conclusions or alter your text to make it fit.
+PPTX import/export, arbitrary HTML import, collaboration, AI services and free-form drawing are not currently supported. Import custom plots as figures. Layouts preserve readable text and report overflow rather than silently shrinking content.
 
 Local documents and exports stay on your Mac. No account, server or runtime network connection is needed.
 

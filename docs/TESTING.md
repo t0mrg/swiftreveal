@@ -97,4 +97,4 @@ The actual commands run and their outcomes are recorded in `docs/VALIDATION.md` 
 - [ ] Test Process, long and multiline Mermaid labels in rectangles/diamonds/rounded nodes, including light/dark themes and slide/block scaling.
 - [ ] Compare Mermaid label centring and containment in preview, navigator, offline HTML and PDF.
 
-No tag, remote push or public release is created for this testing build. Request user acceptance after the implementation commit before deploying.
+Obtain user acceptance after the implementation commit before deploying a release. The user accepted the 0.6.0 testing build and authorized publication.
