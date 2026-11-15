@@ -5,9 +5,9 @@ window.swiftRevealDiagramsReady = (async () => {
   if (!targets.length) return errors;
   if (document.fonts) await document.fonts.ready;
   const tags = new Set(['svg','g','defs','marker','path','rect','circle','ellipse','polygon','polyline','line','text','tspan','title','desc','clippath','lineargradient','radialgradient','stop']);
-  const attributes = new Set(['id','class','viewbox','xmlns','width','height','x','y','x1','x2','y1','y2','cx','cy','r','rx','ry','d','points','transform','fill','stroke','stroke-width','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','fill-rule','clip-rule','clip-path','marker-start','marker-mid','marker-end','markerwidth','markerheight','refx','refy','orient','markerunits','preserveaspectratio','text-anchor','dominant-baseline','dy','dx','font-weight','offset','stop-color','stop-opacity','gradientunits','gradienttransform','role','aria-labelledby','aria-roledescription','aria-label','focusable']);
-  const safeStyleProperties = new Set(['fill','stroke','stroke-width','stroke-dasharray','opacity','fill-opacity','stroke-opacity','color','font-weight','font-style','text-anchor']);
-  function safeSVG(markup, fontSize) {
+  const attributes = new Set(['id','class','viewbox','xmlns','width','height','x','y','x1','x2','y1','y2','cx','cy','r','rx','ry','d','points','transform','fill','stroke','stroke-width','stroke-dasharray','stroke-dashoffset','opacity','fill-opacity','stroke-opacity','fill-rule','clip-rule','clip-path','marker-start','marker-mid','marker-end','markerwidth','markerheight','refx','refy','orient','markerunits','preserveaspectratio','text-anchor','dominant-baseline','dy','dx','font-family','font-size','font-style','font-weight','letter-spacing','word-spacing','alignment-baseline','xml:space','offset','stop-color','stop-opacity','gradientunits','gradienttransform','role','aria-labelledby','aria-roledescription','aria-label','focusable']);
+  const safeStyleProperties = new Set(['fill','stroke','stroke-width','stroke-dasharray','opacity','fill-opacity','stroke-opacity','color','font-family','font-size','font-weight','font-style','letter-spacing','word-spacing','text-anchor','dominant-baseline']);
+  function safeSVG(markup, typography) {
     const parsed = new DOMParser().parseFromString(markup, 'image/svg+xml');
     const root = parsed.documentElement;
     if (root.localName !== 'svg' || parsed.querySelector('parsererror')) throw new Error('The diagram did not produce valid SVG.');
@@ -30,7 +30,22 @@ window.swiftRevealDiagramsReady = (async () => {
     root.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
     root.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     root.removeAttribute('width'); root.removeAttribute('height');
-    root.style.fontSize = fontSize + 'px';
+    // Mermaid sizes nodes using these metrics. Keep them unchanged after its
+    // generated stylesheet is removed, including when the surrounding slide has
+    // a different font or typography. Generic slide scaling skips the SVG tree.
+    root.style.fontFamily = typography.fontFamily;
+    root.style.fontSize = typography.fontSize + 'px';
+    root.style.fontWeight = '400';
+    root.style.fontStyle = 'normal';
+    root.style.letterSpacing = 'normal';
+    root.style.wordSpacing = 'normal';
+    root.style.textTransform = 'none';
+    // This rule comes from Mermaid's generated flowchart stylesheet. Removing
+    // that stylesheet without preserving its anchor shifts labels to the right
+    // of the node centre, even though their measured widths remain correct.
+    root.querySelectorAll('.node .label text,.rough-node .label text,.flowchart-label text,.flowchartTitleText').forEach(text => {
+      if (!text.hasAttribute('text-anchor') && !text.style.textAnchor) text.setAttribute('text-anchor','middle');
+    });
     return document.importNode(root, true);
   }
   for (let index = 0; index < targets.length; index++) {
@@ -44,16 +59,27 @@ window.swiftRevealDiagramsReady = (async () => {
       if (/%%\s*\{|^\s*---\s*$/m.test(source)) throw new Error('Diagram configuration directives and front matter are not supported.');
       if (!window.mermaid?.render) throw new Error('The bundled Mermaid renderer is unavailable.');
       const fontSize = Math.max(6, Math.min(352, Number.parseFloat(getComputedStyle(target).fontSize) || 22));
+      const fontFamily = 'Helvetica Neue, Arial, sans-serif';
+      const typography = {fontFamily, fontSize};
       mermaid.initialize({ startOnLoad:false, securityLevel:'strict', suppressErrorRendering:true,
-        maxTextSize:50000, maxEdges:500, theme:'base', fontFamily:'Helvetica Neue, Arial, sans-serif',
-        themeVariables:{fontSize:fontSize+'px'},
+        maxTextSize:50000, maxEdges:500, theme:'base', fontFamily,
+        themeVariables:{fontFamily,fontSize:fontSize+'px'},
         flowchart:{htmlLabels:false,useMaxWidth:false,defaultRenderer:'dagre-wrapper'},
         htmlLabels:false, deterministicIds:true, deterministicIDSeed:'swiftreveal-'+index });
       scratch = document.createElement('div');
       scratch.style.cssText='position:fixed;left:-20000px;top:0;width:1152px;height:500px;visibility:hidden;pointer-events:none';
+      // The measurement host uses the same typography as the final SVG.
+      // Its font size already contains the slide × block factors.
+      scratch.style.fontFamily = fontFamily;
+      scratch.style.fontSize = fontSize + 'px';
+      scratch.style.fontWeight = '400';
+      scratch.style.fontStyle = 'normal';
+      scratch.style.letterSpacing = 'normal';
+      scratch.style.wordSpacing = 'normal';
+      scratch.style.textTransform = 'none';
       document.body.appendChild(scratch);
       const rendered = await mermaid.render('sr-diagram-'+index, source, scratch);
-      target.replaceChildren(safeSVG(rendered.svg, fontSize));
+      target.replaceChildren(safeSVG(rendered.svg, typography));
       target.dataset.rendered='true';
     } catch (error) {
       const detail = String(error?.message || error).slice(0,600);

@@ -19,9 +19,9 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.5.4</string>
+    <string>0.6.0</string>
     <key>CFBundleVersion</key>
-    <string>9</string>
+    <string>10</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
     <key>LSApplicationCategoryType</key>
@@ -53,6 +53,14 @@
     </array>
     <key>UTExportedTypeDeclarations</key>
     <array>
+        <dict>
+            <key>UTTypeIdentifier</key>
+            <string>org.swiftreveal.slides</string>
+            <key>UTTypeDescription</key>
+            <string>SwiftReveal Slides Clipboard</string>
+            <key>UTTypeConformsTo</key>
+            <array><string>public.json</string></array>
+        </dict>
         <dict>
             <key>UTTypeIdentifier</key>
             <string>org.swiftreveal.presentation</string>

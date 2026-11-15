@@ -51,6 +51,25 @@ struct DiagramRendererTests {
         #expect(!ordinary.contains("version:\"11.12.0\""))
     }
 
+    @Test func diagramTypographyAndCenterAnchorsAreRetainedAfterRemovingGeneratedStyles() {
+        let deck = Deck(slides: [Slide(blocks: [ContentBlock(kind: .mermaid, body: "flowchart LR\n A[Input] --> B[Process]", fontScale: 0.8)], fontScale: 1.25)])
+        let html = HTMLRenderer.singleSlide(deck: deck, slideIndex: 0)
+        // Measurement and final rendering share one explicit font specification.
+        #expect(html.contains("themeVariables:{fontFamily,fontSize:fontSize+'px'}"))
+        #expect(html.contains("scratch.style.fontFamily = fontFamily"))
+        #expect(html.contains("root.style.fontFamily = typography.fontFamily"))
+        #expect(html.contains("root.style.fontSize = typography.fontSize + 'px'"))
+        #expect(html.contains(".sr-mermaid svg text{fill:var(--block-fg,var(--ink));font-family:inherit}"))
+        // Node geometry is computed around a middle-anchored label. Preserve the
+        // anchor as SVG metadata as well as scoped CSS after stripping <style>.
+        #expect(html.contains("text.setAttribute('text-anchor','middle')"))
+        #expect(html.contains(".flowchart-label text,.flowchartTitleText){text-anchor:middle}"))
+        #expect(html.contains("'font-family','font-size','font-style','font-weight'"))
+        #expect(html.contains("if(node.closest('svg')) return null"))
+        #expect(html.contains("--slide-font-scale:1.25"))
+        #expect(html.contains("--block-font-scale:0.8"))
+    }
+
     @Test func codeStylesKeepMonospaceIndentationAndReadableDefaultSizes() {
         let html = HTMLRenderer.export(deck: .blank)
         #expect(html.contains("font-size:calc(22px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.35;white-space:pre-wrap"))

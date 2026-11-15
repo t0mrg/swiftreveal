@@ -1,12 +1,8 @@
-SwiftReveal 0.5.4 removes the experimental menu bridge responsible for the 0.5.3 startup crash and retains insertion independently of native menu tracking. Add Slide and Add Block use button-driven popovers; offscreen rendering windows are nonactivating panels isolated from menu/focus handling. A Diagnostics button records app/window/menu state without document content. The user confirmed insertion works; the macOS menu-bar issue remains under investigation. Diagnostics now include menu ownership/structure and a reconnect action.
+SwiftReveal 0.6.0 — testing build; not deployed
 
-Version 0.5 also adds:
+- Open presentations in separate windows using New window/Open controls or standard document commands.
+- Select multiple navigator slides and copy/paste across presentations in source order, above the selected destination slide. Copied slides inherit the receiving deck theme/CSS while retaining custom slide/block settings and embedded assets.
+- Slide-specific copy/paste buttons and commands supplement standard navigator ⌘C/⌘V without taking over text editing shortcuts.
+- Repair Mermaid node-label centring and overflow by preserving SVG centre anchors and matching measurement/output typography.
 
-- Independent horizontal and vertical centring for title slides containing no content blocks.
-- Editable Mermaid flowchart/DAG blocks with bundled offline rendering to SVG. PDF export waits for diagrams and rejects invalid source instead of exporting an empty block.
-- Fenced Markdown code blocks with syntax highlighting, preserved whitespace and indentation, four-space tab stops and readable proportional font scaling.
-- An editable Diagrams-and-Code example presentation.
-
-Existing presentations remain compatible. Native preview, navigator thumbnails, HTML export and PDF use the shared renderer. Mermaid and dependency licences are retained alongside the existing reveal.js notices.
-
-Download the `arm64` ZIP for Apple silicon or `x86_64` for Intel. Requires macOS 14 or newer. The app is ad-hoc signed and not Apple-notarized. See README.md for first-launch and installation instructions and docs/VALIDATION.md for test evidence.
+Automated transfer tests cover destination-theme isolation, custom colours, images/backgrounds, ordering, position and new identities. The in-app integration checks include Mermaid label geometry. Manual multi-window/clipboard, undo and SVG/PDF checks require user acceptance before a public release.

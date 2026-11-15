@@ -22,6 +22,21 @@ Open `dist/SwiftReveal.app`, then choose **New Document** (or **File → New**).
 
 Requires macOS 14 or newer. The supplied build is for Apple silicon and is locally ad-hoc signed, not notarized. It is intended for testing on this Mac. Building from source on an Intel Mac produces an Intel build.
 
+## Multiple windows and copying slides
+
+Use **New window** above the slide navigator to create another presentation, or **Open…** to open existing `.swiftreveal` files in separate windows. File → New/Open and the usual macOS shortcuts remain available.
+
+1. In the source window, click slides in the navigator. Use **⌘-click** for individual slides or **Shift-click** for a range.
+2. Click **Copy** below the navigator, or press **⌘C** while the navigator has focus.
+3. Switch to the receiving window and select the slide that should follow the pasted slides.
+4. Click **Paste above**, or press **⌘V** while its navigator has focus.
+
+Slides are copied in their original presentation order and inserted **above** the receiving selection. If multiple target slides are selected, insertion is above the earliest selected target in presentation order. The pasted slides become selected. Repeated paste creates independent copies with fresh identifiers.
+
+The receiving presentation keeps its theme, deck CSS, author and footer. Per-block custom colours, table-header colours, embedded figures/backgrounds, text, notes, layouts and font settings are retained. Source deck CSS is not transferred; any custom CSS classes use the receiving deck's definitions.
+
+The **Slides** menu also offers explicit slide-copy/paste actions with **⌥⌘C** / **⌥⌘V**, regardless of text-field focus. Ordinary **⌘C/⌘V** in text fields continues to edit text. Clipboard payloads are versioned and limited to 100 MB including embedded images.
+
 ## Create and edit
 
 - Choose a slide on the left. Edit its title, subtitle and blocks in the inspector on the right.

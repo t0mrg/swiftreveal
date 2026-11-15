@@ -83,3 +83,18 @@ The actual commands run and their outcomes are recorded in `docs/VALIDATION.md` 
 - [ ] Repeat while thumbnails render and after closing presentation/export windows.
 - [ ] Confirm thumbnail/PDF render hosts never become key/main or intercept clicks.
 - [ ] If menu-bar failure persists, open Diagnostics and inspect modal/activation/window state and menu-tracking events.
+
+## Cross-window slide transfer and Mermaid labels (0.6 testing)
+
+- [ ] Open a source presentation and use New window/Open to create a separate destination; confirm edits remain independent.
+- [ ] Copy a single slide, a Shift-selected range and disjoint Command-selected slides, using buttons and navigator ⌘C/⌘V.
+- [ ] Paste above the first/middle/last target and above a multi-selection; verify source order and destination position.
+- [ ] Set different source/destination themes and deck CSS. Unset colours follow the destination; custom block/table colours and backgrounds remain unchanged.
+- [ ] Copy image, table, Mermaid, background, notes and scaled text; save/reopen the destination and verify all content.
+- [ ] Paste twice into the same deck and back into the source; edit one copy and confirm others are independent.
+- [ ] Undo/redo one multi-slide paste as a unit; verify selection remains valid after undo, redo, deletion and reordering.
+- [ ] Copy/paste text in the inspector: standard text shortcuts must not copy/paste slides there.
+- [ ] Test Process, long and multiline Mermaid labels in rectangles/diamonds/rounded nodes, including light/dark themes and slide/block scaling.
+- [ ] Compare Mermaid label centring and containment in preview, navigator, offline HTML and PDF.
+
+No tag, remote push or public release is created for this testing build. Request user acceptance after the implementation commit before deploying.

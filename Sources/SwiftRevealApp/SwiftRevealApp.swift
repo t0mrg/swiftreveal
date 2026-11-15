@@ -33,6 +33,7 @@ struct SwiftRevealApp: App {
         }
         .defaultSize(width: 1460, height: 900)
         .commands {
+            SlideTransferCommands()
             CommandGroup(replacing: .help) {
                 Button("SwiftReveal Guide") { GuideWindow.show() }
                 Divider()

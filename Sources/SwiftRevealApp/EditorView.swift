@@ -5,7 +5,12 @@ import SwiftRevealCore
 
 struct EditorView: View {
     @Binding var document: PresentationDocument
+    @Environment(\.newDocument) private var newDocument
+    @Environment(\.openDocument) private var openDocument
+    @Environment(\.undoManager) private var undoManager
     @State private var selectedSlideID: UUID?
+    @State private var selectedSlideIDs: Set<UUID> = []
+    @State private var pendingPaste: Task<Void, Never>?
     @State private var selectedBlockID: UUID?
     @State private var warnings: [String] = []
     @State private var errorMessage: String?
@@ -16,6 +21,16 @@ struct EditorView: View {
 
     private var slideIndex: Int {
         document.deck.slides.firstIndex { $0.id == selectedSlideID } ?? 0
+    }
+
+    private var slideSelection: Binding<Set<UUID>> {
+        Binding(get: { selectedSlideIDs }, set: { selection in
+            let added = selection.subtracting(selectedSlideIDs)
+            selectedSlideIDs = selection
+            if added.count == 1 { selectedSlideID = added.first }
+            else if let active = selectedSlideID, selection.contains(active) { return }
+            else { selectedSlideID = document.deck.slides.first(where: { selection.contains($0.id) })?.id }
+        })
     }
 
     var body: some View {
@@ -32,14 +47,20 @@ struct EditorView: View {
             }
         }
         .navigationTitle(document.deck.title)
+        .focusedSceneValue(\.slideTransferActions, SlideTransferActions(canCopy: !selectedSlideIDs.isEmpty, copy: { copySelectedSlides() }, paste: { pasteSlides() }))
         .toolbar { toolbar }
         .onAppear {
-            if selectedSlideID == nil { selectedSlideID = document.deck.slides.first?.id }
+            if selectedSlideIDs.isEmpty, let first = document.deck.slides.first?.id { selectSlide(first) }
             InteractionDiagnostics.shared.start()
         }
+        .onDisappear { pendingPaste?.cancel(); pendingPaste = nil }
         .onChange(of: selectedSlideID) { _, _ in warnings = []; selectedBlockID = nil }
         .onChange(of: document.deck.slides.map(\.id)) { _, ids in
-            if !ids.contains(selectedSlideID ?? UUID()) { selectedSlideID = ids.first }
+            let valid = selectedSlideIDs.intersection(ids)
+            if valid != selectedSlideIDs { selectedSlideIDs = valid }
+            if let active = selectedSlideID, ids.contains(active) { return }
+            selectedSlideID = ids.first(where: { valid.contains($0) }) ?? ids.first
+            if selectedSlideIDs.isEmpty, let active = selectedSlideID { selectedSlideIDs = [active] }
         }
         .alert("SwiftReveal", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
             Button("OK") { errorMessage = nil }
@@ -64,13 +85,23 @@ struct EditorView: View {
             HStack {
                 Text("SLIDES").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 Spacer()
-                Text("\(document.deck.slides.count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                Text(selectedSlideIDs.count > 1 ? "\(selectedSlideIDs.count) selected / \(document.deck.slides.count)" : "\(document.deck.slides.count)")
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }.padding(.horizontal, 16).padding(.vertical, 12)
-            List(selection: $selectedSlideID) {
+            HStack {
+                Button { newDocument(PresentationDocument()) } label: { Label("New window", systemImage: "doc.badge.plus") }
+                    .help("Create a new presentation in another window")
+                Button(action: openPresentation) { Label("Open…", systemImage: "folder") }
+                    .help("Open presentations in separate windows")
+            }.font(.caption).padding(.horizontal, 12).padding(.bottom, 10)
+            List(selection: slideSelection) {
                 ForEach(Array(document.deck.slides.enumerated()), id: \.element.id) { index, slide in
                     SlideRow(deck: document.deck, index: index)
                         .tag(slide.id)
                         .contextMenu {
+                            Button("Copy slides") { copySelectedSlides(ids: selectedSlideIDs.contains(slide.id) ? selectedSlideIDs : [slide.id]) }
+                            Button("Paste slides above") { pasteSlides(above: selectedSlideIDs.contains(slide.id) ? selectedSlideIDs : [slide.id]) }
+                            Divider()
                             Button("Duplicate slide") { duplicate(id: slide.id) }
                             Button("Move up") { move(id: slide.id, delta: -1) }.disabled(index == 0)
                             Button("Move down") { move(id: slide.id, delta: 1) }.disabled(index == document.deck.slides.count - 1)
@@ -81,6 +112,11 @@ struct EditorView: View {
                 .onMove { source, destination in document.deck.slides.move(fromOffsets: source, toOffset: destination) }
             }
             .listStyle(.sidebar)
+            .accessibilityLabel("Slides — Command-click or Shift-click to select multiple")
+            .onCopyCommand(perform: selectedSlideIDs.isEmpty ? nil : { copyProviders() })
+            .onPasteCommand(of: [.swiftRevealSlides]) { providers in
+                pasteProviders(providers)
+            }
             Divider()
             HStack {
                 InsertionPicker(title: "Add slide", symbol: "plus", choices: SlideLayout.allCases, label: { $0.label }, action: add)
@@ -88,6 +124,13 @@ struct EditorView: View {
                 Button { delete(id: document.deck.slides[slideIndex].id) } label: { Image(systemName: "trash") }
                     .buttonStyle(.borderless).help("Delete selected slide").disabled(document.deck.slides.count <= 1)
             }.padding(12)
+            HStack {
+                Button { copySelectedSlides() } label: { Label("Copy", systemImage: "doc.on.doc") }
+                    .disabled(selectedSlideIDs.isEmpty)
+                    .help("Copy selected slides in presentation order (⌘C when the navigator has focus)")
+                Button { pasteSlides() } label: { Label("Paste above", systemImage: "doc.on.clipboard") }
+                    .help("Paste copied slides above the selected slide")
+            }.font(.caption).padding(.horizontal, 12).padding(.bottom, 12)
         }
     }
 
@@ -154,20 +197,88 @@ struct EditorView: View {
         }.padding(24).frame(width: 460)
     }
 
+    private func selectSlide(_ id: UUID) {
+        selectedSlideID = id
+        selectedSlideIDs = [id]
+    }
+
+    private func copySelectedSlides(ids: Set<UUID>? = nil) {
+        do { try SlideClipboard.write(SlideTransfer(copying: ids ?? selectedSlideIDs, from: document.deck)) }
+        catch { errorMessage = "Could not copy slides: \(error.localizedDescription)" }
+    }
+
+    private func copyProviders() -> [NSItemProvider] {
+        do { return [try SlideClipboard.provider(SlideTransfer(copying: selectedSlideIDs, from: document.deck))] }
+        catch { errorMessage = "Could not copy slides: \(error.localizedDescription)"; return [] }
+    }
+
+    private func pasteProviders(_ providers: [NSItemProvider]) {
+        let anchor = selectedSlideIDs
+        pendingPaste?.cancel()
+        pendingPaste = Task { @MainActor in
+            do {
+                let transfer = try await SlideClipboard.read(from: providers)
+                try Task.checkCancellation()
+                paste(transfer, above: anchor)
+            } catch is CancellationError {
+                // The receiving window closed or a newer paste replaced this one.
+            } catch {
+                if !Task.isCancelled { errorMessage = "Could not paste slides: \(error.localizedDescription)" }
+            }
+        }
+    }
+
+    private func pasteSlides(above ids: Set<UUID>? = nil) {
+        do { paste(try SlideClipboard.read(), above: ids ?? selectedSlideIDs) }
+        catch { errorMessage = "Could not paste slides: \(error.localizedDescription)" }
+    }
+
+    private func paste(_ transfer: SlideTransfer, above ids: Set<UUID>) {
+        do {
+            var receivingDeck = document.deck
+            let inserted = try transfer.insert(into: &receivingDeck, above: ids)
+            // One document-binding write keeps the complete paste in one undo step.
+            document.deck = receivingDeck
+            selectedSlideIDs = Set(inserted)
+            selectedSlideID = inserted.first
+            undoManager?.setActionName("Paste slides")
+        } catch { errorMessage = "Could not paste slides: \(error.localizedDescription)" }
+    }
+
+    private func openPresentation() {
+        let panel = NSOpenPanel()
+        panel.title = "Open presentations in new windows"
+        panel.allowedContentTypes = [.swiftReveal]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        let completion: (NSApplication.ModalResponse) -> Void = { response in
+            guard response == .OK else { return }
+            let urls = panel.urls
+            Task { @MainActor in
+                for url in urls {
+                    do { try await openDocument(at: url) }
+                    catch { errorMessage = "Could not open presentation: \(error.localizedDescription)" }
+                }
+            }
+        }
+        if let window = NSApp.keyWindow { panel.beginSheetModal(for: window, completionHandler: completion) }
+        else { panel.begin(completionHandler: completion) }
+    }
+
     private func add(_ layout: SlideLayout) {
         let slide = Slide.starter(layout)
         document.deck.slides.insert(slide, at: min(slideIndex + 1, document.deck.slides.count))
-        selectedSlideID = slide.id
+        selectSlide(slide.id)
     }
     private func duplicate(id: UUID) {
         guard let index = document.deck.slides.firstIndex(where: { $0.id == id }) else { return }
         let copy = document.deck.slides[index].duplicated()
-        document.deck.slides.insert(copy, at: index + 1); selectedSlideID = copy.id
+        document.deck.slides.insert(copy, at: index + 1); selectSlide(copy.id)
     }
     private func delete(id: UUID) {
         guard document.deck.slides.count > 1, let index = document.deck.slides.firstIndex(where: { $0.id == id }) else { return }
         document.deck.slides.remove(at: index)
-        selectedSlideID = document.deck.slides[min(index, document.deck.slides.count - 1)].id
+        selectSlide(document.deck.slides[min(index, document.deck.slides.count - 1)].id)
     }
     private func move(id: UUID, delta: Int) {
         guard let index = document.deck.slides.firstIndex(where: { $0.id == id }), document.deck.slides.indices.contains(index + delta) else { return }
@@ -182,7 +293,7 @@ struct EditorView: View {
                           title: document.deck.slides[index].title, density: document.deck.slides[index].density, blocks: [block],
                           background: document.deck.slides[index].background, fontScale: document.deck.slides[index].fontScale)
         document.deck.slides.insert(slide, at: index + 1)
-        selectedSlideID = slide.id
+        selectSlide(slide.id)
     }
     private func destination(extension ext: String, type: UTType) -> URL? {
         let panel = NSSavePanel(); panel.allowedContentTypes = [type]

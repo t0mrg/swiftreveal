@@ -140,6 +140,45 @@ import SwiftRevealCore
                 """)
             record("Mermaid renders safe SVG", diagram as? Bool == true)
             try await browser.snapshot(to: output.appendingPathComponent("mermaid-dag.png"))
+            // Regression: Mermaid measures centred SVG text before we remove its
+            // generated styles. Final labels must retain the same anchor/metrics.
+            let labelSource = "flowchart LR\n A[Input] --> B[Process]\n B --> C{Continue?}\n C --> D([Output])\n B --> E[\"Longer<br/>process label\"]"
+            for (caseIndex, scales) in [(1.0, 1.0), (1.25, 0.8), (0.8, 1.5)].enumerated() {
+                let labelDeck = Deck(theme: caseIndex == 2 ? .midnight : .azure,
+                    slides: [Slide(layout: .figure, title: "Centred diagram labels", blocks: [
+                        ContentBlock(kind: .mermaid, body: labelSource, fontScale: scales.1)
+                    ], fontScale: scales.0)], customCSS: ".sr-slide { font-family: Georgia, serif; }")
+                _ = try await browser.render(HTMLRenderer.singleSlide(deck: labelDeck, slideIndex: 0))
+                let geometry = try await browser.run("""
+                    const svg=document.querySelector('.sr-mermaid svg');
+                    const nodes=Array.from(svg?.querySelectorAll('g.node') || []);
+                    const labels=nodes.map(node=>{
+                      const shape=Array.from(node.children).find(child=>child.matches('.label-container,rect,circle,ellipse,polygon,path'));
+                      const texts=Array.from(node.querySelectorAll('.label text'));
+                      if(!shape || !texts.length) return {valid:false,text:node.textContent};
+                      const box=shape.getBoundingClientRect(), bounds=texts.map(text=>text.getBoundingClientRect());
+                      const label={left:Math.min(...bounds.map(b=>b.left)),right:Math.max(...bounds.map(b=>b.right)),
+                        top:Math.min(...bounds.map(b=>b.top)),bottom:Math.max(...bounds.map(b=>b.bottom))};
+                      return {text:texts.map(text=>text.textContent).join(' '),
+                        valid:box.width>0 && bounds.every(b=>b.width>0),
+                        inside:label.left>=box.left-2 && label.right<=box.right+2 && label.top>=box.top-2 && label.bottom<=box.bottom+2,
+                        centred:Math.abs((label.left+label.right-box.left-box.right)/2)<=2,
+                        anchor:texts.every(text=>getComputedStyle(text).textAnchor==='middle'),
+                        family:texts.every(text=>getComputedStyle(text).fontFamily===getComputedStyle(svg).fontFamily)};
+                    });
+                    return {labels, count:nodes.length,
+                      process:labels.some(label=>label.text==='Process' && label.inside && label.centred),
+                      fit:labels.length===5 && labels.every(label=>label.valid && label.inside && label.centred && label.anchor && label.family),
+                      fontSize:svg?parseFloat(getComputedStyle(svg).fontSize):0,
+                      arrows:!!svg?.querySelector('marker path') && !!svg?.querySelector('[marker-end]')};
+                    """) as? [String: Any] ?? [:]
+                let detail = String(describing: geometry["labels"] ?? "Missing SVG labels")
+                record("Mermaid labels fit and centre at scale case \(caseIndex + 1)", geometry["fit"] as? Bool == true, detail)
+                record("Mermaid Process label stays inside its box \(caseIndex + 1)", geometry["process"] as? Bool == true, detail)
+                record("Mermaid arrowheads survive label repair \(caseIndex + 1)", geometry["arrows"] as? Bool == true)
+                record("Mermaid label font applies both scopes \(caseIndex + 1)", abs((geometry["fontSize"] as? Double ?? -1) - 22 * scales.0 * scales.1) < 0.05)
+                if caseIndex == 0 { try await browser.snapshot(to: output.appendingPathComponent("mermaid-label-geometry.png")) }
+            }
             _ = try await browser.render(HTMLRenderer.singleSlide(deck: formatting, slideIndex: 2))
             let code = try await browser.run("""
                 const pre=document.querySelector('pre.sr-code');

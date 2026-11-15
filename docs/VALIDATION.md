@@ -1,5 +1,13 @@
 # SwiftReveal validation
 
+## 0.6.0 testing build — slide transfer and label layout
+
+The previous checkpoint is commit fefe04d. The new work adds explicit New window/Open controls to the document-based app, navigator multiselection, standard navigator Copy/Paste handling, dedicated slide commands/buttons and a versioned slide-only clipboard payload. Paste captures the receiving window/anchor, inserts above the earliest selected target in source order, retains local settings and embedded bytes, and keeps destination theme/CSS/metadata unchanged. Each paste creates fresh slide/block IDs. Async paste is cancelled on receiving editor closure; context-menu and keyboard/button paste use the same multi-selection anchor policy.
+
+Mermaid's stripped generated stylesheet contained its node-label centre-anchor rule; preserving that SVG anchor fixes the concrete rightward-label shift. Diagram measurement and final SVG now share font family/size and base typography. Added native geometry checks cover Process, multiline labels, rectangles/diamond/stadium, dark themes, custom slide fonts, compound scaling and arrowheads.
+
+All 73 application tests and three packaging tests pass. The complete app compiles and passes strict ad-hoc signature verification. Source-level review covered clipboard representations, window routing, selection and text-command isolation. The GUI-restricted runner has not verified native multiwindow/clipboard, Undo/Redo or rendered label geometry/PDF. Those remain user acceptance checks in TESTING.md. No release tag, remote push or deployment is authorized for this testing build.
+
 ## 0.5.4 startup crash recovery
 
 Crash reports for the experimental 0.5.3 build identify an AppKit assertion in `NSMenuItem.setSubmenu`, called by `MenuMirror.refresh`. The menu workaround attempted to attach an already-owned submenu to another item. The entire experimental native-menu bridge and its startup hook were removed; 0.5.4 restores the standard SwiftUI document menus while retaining working insertion popovers and diagnostics. This is separate from the earlier machine-specific failure to open menus. The same app works on another Mac; local preferences contain only ordinary open/color-panel settings and no obvious menu override. No user preferences or documents were reset. The user confirmed 0.5.4 opens, edits and adds slides normally. All 65 application tests and three packaging tests pass; the recovery app passes strict ad-hoc signature verification and its executable contains no native-menu bridge symbols. The earlier machine-specific menu-bar failure remains unresolved.
