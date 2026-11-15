@@ -17,8 +17,8 @@ public enum SlideLayout: String, Codable, CaseIterable, Sendable {
 }
 
 public enum BlockKind: String, Codable, CaseIterable, Sendable {
-    case text, callout, metric, figure, table
-    public var label: String { rawValue.capitalized }
+    case text, callout, metric, figure, table, mermaid
+    public var label: String { self == .mermaid ? "Mermaid diagram" : rawValue.capitalized }
 }
 
 public enum DeckTheme: String, Codable, CaseIterable, Sendable {
@@ -78,6 +78,7 @@ public struct ContentBlock: Codable, Equatable, Identifiable, Sendable {
         case .metric: return ContentBlock(kind: kind, heading: "42", body: "A meaningful measure")
         case .figure: return ContentBlock(kind: kind, caption: "Figure caption and source")
         case .table: return ContentBlock(kind: kind, heading: "Example table")
+        case .mermaid: return ContentBlock(kind: kind, heading: "Flow diagram", body: "flowchart LR\n    A[Input] --> B[Process]\n    B --> C[Output]", caption: "")
         }
     }
 }
@@ -94,9 +95,12 @@ public struct Slide: Codable, Equatable, Identifiable, Sendable {
     public var blocks: [ContentBlock]
     public var background: SlideBackground?
     public var fontScale: Double?
-    public init(id: UUID = UUID(), layout: SlideLayout = .twoColumns, kicker: String = "", title: String = "Untitled slide", subtitle: String = "", notes: String = "", split: Double = 0.5, density: SlideDensity = .comfortable, blocks: [ContentBlock] = [], background: SlideBackground? = nil, fontScale: Double? = nil) {
+    public var centerTitleHorizontally: Bool?
+    public var centerTitleVertically: Bool?
+    public init(id: UUID = UUID(), layout: SlideLayout = .twoColumns, kicker: String = "", title: String = "Untitled slide", subtitle: String = "", notes: String = "", split: Double = 0.5, density: SlideDensity = .comfortable, blocks: [ContentBlock] = [], background: SlideBackground? = nil, fontScale: Double? = nil, centerTitleHorizontally: Bool? = nil, centerTitleVertically: Bool? = nil) {
         self.id = id; self.layout = layout; self.kicker = kicker; self.title = title; self.subtitle = subtitle
         self.notes = notes; self.split = split; self.density = density; self.blocks = blocks; self.background = background; self.fontScale = fontScale
+        self.centerTitleHorizontally = centerTitleHorizontally; self.centerTitleVertically = centerTitleVertically
     }
     public static func starter(_ layout: SlideLayout) -> Slide {
         let blocks: [ContentBlock]

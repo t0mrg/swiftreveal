@@ -57,7 +57,7 @@ private struct ThumbnailIdentity: Equatable {
     private var requests: [(UUID, String, NSString, CheckedContinuation<NSImage?, Never>)] = []
     private var processing = false
     private var webView: WKWebView?
-    private var window: NSWindow?
+    private var window: RenderHostPanel?
     private var activeNavigation: WKNavigation?
     private var navigationCompletion: ((Result<Void, Error>) -> Void)?
 
@@ -125,15 +125,13 @@ private struct ThumbnailIdentity: Equatable {
     }
 
     private func prepareView() -> WKWebView {
-        if let webView { window?.orderBack(nil); return webView }
+        if let webView { window?.prepareForRendering(); return webView }
         let configuration = WKWebViewConfiguration()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 1280, height: 720), configuration: configuration)
         view.navigationDelegate = self
-        let host = NSWindow(contentRect: CGRect(x: -10000, y: -10000, width: 1280, height: 720), styleMask: [.borderless], backing: .buffered, defer: false)
-        host.isReleasedWhenClosed = false
-        host.contentView = view
-        host.orderBack(nil)
+        let host = RenderHostPanel(content: view)
+        host.prepareForRendering()
         window = host; webView = view
         return view
     }

@@ -1,7 +1,12 @@
-SwiftReveal is a native macOS editor for structured slide presentations, with eight layouts, nine themes, live slide previews, figures, tables and offline reveal.js HTML/PDF export.
+SwiftReveal 0.5.4 removes the experimental menu bridge responsible for the 0.5.3 startup crash and retains insertion independently of native menu tracking. Add Slide and Add Block use button-driven popovers; offscreen rendering windows are nonactivating panels isolated from menu/focus handling. A Diagnostics button records app/window/menu state without document content. The user confirmed insertion works; the macOS menu-bar issue remains under investigation. Diagnostics now include menu ownership/structure and a reconnect action.
 
-This release includes the Azure stacked-slides app icon, proportional slide/block font scaling, safe HTML alongside Markdown, custom deck CSS and reusable themes. Presentations use portable `.swiftreveal` JSON documents with embedded figures.
+Version 0.5 also adds:
 
-Download the `arm64` ZIP for Apple silicon or the `x86_64` ZIP for Intel. Requires macOS 14 or newer. Unzip and move SwiftReveal.app to Applications. SHA256SUMS contains the archive checksums; swiftreveal.rb is the matching Homebrew cask.
+- Independent horizontal and vertical centring for title slides containing no content blocks.
+- Editable Mermaid flowchart/DAG blocks with bundled offline rendering to SVG. PDF export waits for diagrams and rejects invalid source instead of exporting an empty block.
+- Fenced Markdown code blocks with syntax highlighting, preserved whitespace and indentation, four-space tab stops and readable proportional font scaling.
+- An editable Diagrams-and-Code example presentation.
 
-The app is ad-hoc signed and is not yet Apple-notarized. macOS may block the first launch; use System Settings → Privacy & Security → Open Anyway after attempting to open this trusted download. Full visual and PDF runtime checks are still pending; see docs/VALIDATION.md.
+Existing presentations remain compatible. Native preview, navigator thumbnails, HTML export and PDF use the shared renderer. Mermaid and dependency licences are retained alongside the existing reveal.js notices.
+
+Download the `arm64` ZIP for Apple silicon or `x86_64` for Intel. Requires macOS 14 or newer. The app is ad-hoc signed and not Apple-notarized. See README.md for first-launch and installation instructions and docs/VALIDATION.md for test evidence.

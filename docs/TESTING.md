@@ -59,3 +59,27 @@ The in-app integration suite also checks actual computed theme/table colours, th
 ## Release evidence
 
 The actual commands run and their outcomes are recorded in `docs/VALIDATION.md` at delivery. Unchecked manual items are tasks for user testing, not implied passes.
+
+## Alignment, diagrams and code acceptance (0.5)
+
+- [ ] Centre title/subtitle horizontally, vertically, then both; check no-content title slides with backgrounds and footers.
+- [ ] Add a content block: normal layout returns without losing the stored alignment options.
+- [ ] Add a Mermaid diagram; edit nodes, arrows, labels and direction. Compare main preview and thumbnail.
+- [ ] Test flowchart/DAG branches and labelled edges, including Unicode and punctuation in quoted labels.
+- [ ] Enter invalid Mermaid: verify a readable error and that PDF export preserves an existing output file.
+- [ ] Confirm initialization directives, click handlers and external image/link content cannot escape the slide.
+- [ ] Export HTML and open offline: all graph nodes, edges and arrowheads appear.
+- [ ] Export PDF: diagram labels and edges appear; inspect a zoomed page for vector sharpness.
+- [ ] Try Python, R, SQL and plaintext fences with tabs, blank lines, literal HTML and long lines.
+- [ ] Change slide and block scales and theme; code stays readable and diagrams keep labels inside nodes.
+- [ ] Save/reopen and duplicate slides containing diagrams and alignment options.
+
+## Menu and insertion acceptance (0.5.1)
+
+- [ ] Save and quit the previous app, then open the exact rebuilt app from dist.
+- [ ] Open File/Edit/Window menus and execute New/Save/Undo as applicable.
+- [ ] Add slides through both sidebar and toolbar popovers, with all layout choices.
+- [ ] Add every block kind through its popover; verify selection and undo/save/reopen.
+- [ ] Repeat while thumbnails render and after closing presentation/export windows.
+- [ ] Confirm thumbnail/PDF render hosts never become key/main or intercept clicks.
+- [ ] If menu-bar failure persists, open Diagnostics and inspect modal/activation/window state and menu-tracking events.

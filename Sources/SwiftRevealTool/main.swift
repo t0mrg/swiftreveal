@@ -13,6 +13,9 @@ do {
     let deck = Deck.sample
     try deck.encoded().write(to: directory.appendingPathComponent("Getting-Started.swiftreveal"), options: .atomic)
     try HTMLRenderer.export(deck: deck).write(to: directory.appendingPathComponent("Getting-Started.html"), atomically: true, encoding: .utf8)
+    let formatting = Deck.formattingExamples
+    try formatting.encoded().write(to: directory.appendingPathComponent("Diagrams-and-Code.swiftreveal"), options: .atomic)
+    try HTMLRenderer.export(deck: formatting).write(to: directory.appendingPathComponent("Diagrams-and-Code.html"), atomically: true, encoding: .utf8)
     print("Created editable sample and offline HTML in \(directory.path)")
 } catch {
     FileHandle.standardError.write(Data("Example generation failed: \(error.localizedDescription)\n".utf8))

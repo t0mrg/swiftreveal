@@ -51,6 +51,7 @@ import SwiftRevealCore
             record("Offline reveal.js embedded", html.contains("new Reveal(") && html.contains("class=\"reveal\""))
 
             let browser = SmokeBrowser()
+            defer { browser.close() }
             for index in deck.slides.indices {
                 let report = try await browser.render(HTMLRenderer.singleSlide(deck: deck, slideIndex: index))
                 let warnings = report["warnings"] as? [String] ?? ["No layout warning report received"]
@@ -118,6 +119,56 @@ import SwiftRevealCore
             let cssOverride = try await browser.run("return getComputedStyle(document.querySelector('.sr-copy')).fontSize;")
             record("Edited deck CSS is applied", cssOverride as? String == "12px")
 
+            let formatting = Deck.formattingExamples
+            _ = try await browser.render(HTMLRenderer.singleSlide(deck: formatting, slideIndex: 0))
+            let centered = try await browser.run("""
+                const header=document.querySelector('.sr-header').getBoundingClientRect();
+                const slide=document.querySelector('.sr-slide').getBoundingClientRect();
+                return [getComputedStyle(document.querySelector('.sr-header')).textAlign,
+                  Math.abs((header.top+header.bottom)/2-(slide.top+slide.bottom)/2)];
+                """)
+            let alignment = centered as? [Any] ?? []
+            record("Title-only cover centres horizontally", alignment.first as? String == "center")
+            record("Title-only cover centres vertically", (alignment.last as? Double ?? 999) < 35)
+            let diagramReport = try await browser.render(HTMLRenderer.singleSlide(deck: formatting, slideIndex: 1))
+            record("Mermaid JavaScript", (diagramReport["errors"] as? [String] ?? []).isEmpty)
+            let diagram = try await browser.run("""
+                const svg=document.querySelector('.sr-block svg');
+                const errors=window.swiftRevealDiagramsReady ? await window.swiftRevealDiagramsReady : ['missing renderer'];
+                return !!svg && svg.querySelectorAll('path').length > 0 && errors.length===0 &&
+                  !svg.querySelector('foreignObject,script,image,a') && svg.textContent.includes('Confounder');
+                """)
+            record("Mermaid renders safe SVG", diagram as? Bool == true)
+            try await browser.snapshot(to: output.appendingPathComponent("mermaid-dag.png"))
+            _ = try await browser.render(HTMLRenderer.singleSlide(deck: formatting, slideIndex: 2))
+            let code = try await browser.run("""
+                const pre=document.querySelector('pre.sr-code');
+                return !!pre && pre.textContent.includes('    if not values:') &&
+                  pre.textContent.includes('        return None') &&
+                  pre.querySelector('[class^="sr-token-"]')!==null &&
+                  parseFloat(getComputedStyle(pre).fontSize)>=18 &&
+                  getComputedStyle(pre).tabSize==='4';
+                """)
+            record("Code indentation and syntax highlighting", code as? Bool == true)
+            try await browser.snapshot(to: output.appendingPathComponent("code-block.png"))
+            let formattingPDF = output.appendingPathComponent("Diagrams-and-Code.pdf")
+            try await PDFExporter().export(deck: formatting, to: formattingPDF)
+            let renderedFormattingPDF = PDFDocument(url: formattingPDF)
+            record("Mermaid PDF has all slides", renderedFormattingPDF?.pageCount == 3)
+            record("Mermaid PDF contains SVG labels", renderedFormattingPDF?.page(at: 1)?.string?.contains("Confounder") == true)
+            var invalidDiagram = formatting
+            invalidDiagram.slides = [Slide(layout: .figure, title: "Invalid diagram", blocks: [ContentBlock(kind: .mermaid, body: "flowchart LR\n A[Unclosed")])]
+            let unchangedPDF = output.appendingPathComponent("Invalid-Diagram.pdf")
+            let sentinel = Data("Existing file must survive failed export".utf8)
+            try sentinel.write(to: unchangedPDF)
+            do {
+                try await PDFExporter().export(deck: invalidDiagram, to: unchangedPDF)
+                record("Invalid Mermaid PDF export is rejected", false)
+            } catch {
+                record("Invalid Mermaid PDF export is rejected", true)
+            }
+            record("Failed Mermaid export preserves existing file", (try? Data(contentsOf: unchangedPDF)) == sentinel)
+
             let malicious = "</script><script>window.smokeInjection=true</script><img src=https://example.invalid/tracker>"
             var unsafe = Deck(title: malicious, slides: [Slide(title: malicious, subtitle: malicious, blocks: [ContentBlock(kind: .text, heading: malicious, body: malicious, caption: malicious)])])
             unsafe.author = malicious; unsafe.footer = malicious
@@ -152,7 +203,6 @@ import SwiftRevealCore
                     }
                 }
             } else { record("PDF opens", false) }
-            browser.close()
         } catch {
             record("Integration harness completed", false, error.localizedDescription)
         }
@@ -172,7 +222,7 @@ import SwiftRevealCore
 
 @MainActor private final class SmokeBrowser: NSObject, WKNavigationDelegate {
     private let webView: WKWebView
-    private let window: NSWindow
+    private let window: RenderHostPanel
     private var navigation: ((Result<Void, Error>) -> Void)?
 
     override init() {
@@ -183,12 +233,12 @@ import SwiftRevealCore
             window.addEventListener('unhandledrejection',e=>window.smokeErrors.push(String(e.reason)));
             """, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 1280, height: 720), configuration: config)
-        window = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: 1280, height: 720), styleMask: [.borderless], backing: .buffered, defer: false)
+        window = RenderHostPanel(content: webView)
         super.init()
         webView.navigationDelegate = self
         window.isReleasedWhenClosed = false
         window.contentView = webView
-        window.orderBack(nil)
+        window.prepareForRendering()
     }
 
     func render(_ html: String) async throws -> [String: Any] {

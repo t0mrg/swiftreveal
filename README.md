@@ -36,6 +36,40 @@ Requires macOS 14 or newer. The supplied build is for Apple silicon and is local
 - When a slide needs more room, select a block and use **Split slide** to move it to a new slide, or shorten the content. Overflow warnings describe detected layout problems.
 - Add speaker notes in the inspector. `⌘Z` / `⇧⌘Z` undo and redo document edits.
 
+### Title alignment
+
+On a title slide with no content blocks, use **Layout → Centre title horizontally** and/or **Centre title vertically**. The title, subtitle and section label move as a group. The two options work independently and remain saved with the slide. Adding a content block restores the normal title layout; remove all blocks to use the saved alignment again.
+
+### Mermaid diagrams
+
+Choose **Add block → Mermaid diagram** and edit its source in the inspector. Use `flowchart LR` for a left-to-right flowchart or `flowchart TD` for a top-down graph. For a causal DAG, use directed arrows without cycles; the editor does not validate causal assumptions or acyclicity.
+
+```text
+flowchart LR
+    C[Confounder] --> X[Exposure]
+    C --> Y[Outcome]
+    X --> Y
+```
+
+Diagrams are rendered as SVG using bundled Mermaid, including in navigator thumbnails, offline HTML exports and PDF capture. Use **Full figure** for a large diagram or **Two columns** for a diagram with commentary. A heading and caption are optional. Syntax errors appear in the preview and prevent PDF export until corrected. Flowcharts/graphs are supported; other Mermaid diagram families and initialization directives are not enabled. Interactive links, external resources and embedded HTML are disabled.
+
+Open `Examples/Diagrams-and-Code.swiftreveal` for editable examples of centred titles, a DAG and highlighted code.
+
+### Code blocks
+
+In a text block, put three backticks and a language name on a line, paste your code below, and close with three backticks on their own line. Tilde fences are also supported. For example:
+
+````text
+```python
+def mean(values):
+    if not values:
+        return None
+    return sum(values) / len(values)
+```
+````
+
+Spaces, tabs and blank lines are preserved. Tabs display at four-space stops; long lines wrap visually without changing the stored code. Code starts at a 22 px slide font and follows slide/block font scaling. Highlighting runs locally when HTML is generated, so it also appears in PDF and offline HTML. Highlighted languages include Python, R, Swift, JavaScript, TypeScript, SQL, Bash, JSON, YAML, C/C++, C#, Java, Go, Rust, HTML and CSS. Unknown languages, unlabelled fences and `text`/`plaintext` render as plain code. Backticks around short inline expressions still work.
+
 ### Font scaling
 
 Use **Slide font scale** under Layout to scale all slide text proportionately, including the title, section label, subtitle, block text, figures' captions, tables and footer. Select a block to use **Block font scale** for just that block's heading, body, caption and table text. Values are multipliers in em, from 0.25 to 4, with 1 em as the default. Slide and block values multiply: 1.2 em for the slide and 0.8 em for a block gives 0.96× text in that block. Reset returns the scope to 1 em. Images and slide geometry are not scaled; larger text can still need more room.
@@ -92,6 +126,12 @@ The `Examples` directory contains an editable sample and an offline HTML export.
 
 See [PLAN.md](PLAN.md) for scope and architecture, [docs/TESTING.md](docs/TESTING.md) for the acceptance checklist, and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for dependency licensing.
 
+## Interaction troubleshooting
+
+Add Slide and Add Block use regular buttons with popover choices, so insertion is independent of native menu tracking. Background WebKit rendering runs in nonactivating, mouse-ignoring panels excluded from document focus and the Window menu.
+
+If the macOS menu bar does not open while text fields and normal buttons still work, use the toolbar **Diagnostics** button. It saves application/window state and menu-tracking events to `/tmp/SwiftReveal-Diagnostics/menu-state.json` and provides a copy button. The report excludes slide contents, document names and typed text. The user confirmed insertion works with the popovers; the macOS menu-bar failure remains under investigation. Diagnostics include menu ownership and structure, plus a **Reconnect menu bar** button that re-registers the current menu with AppKit.
+
 ## Current boundaries
 
 This is a first testing release, not a PowerPoint replacement for arbitrary legacy decks. No PPTX import/export, arbitrary HTML import, collaboration, AI service or arbitrary drawing canvas. Custom plots are imported as figures. It does not infer scientific conclusions or alter your text to make it fit.
@@ -100,6 +140,6 @@ Local documents and exports stay on your Mac. No account, server or runtime netw
 
 ## Licence
 
-SwiftReveal is released under the [MIT License](LICENSE). Vendored reveal.js is also MIT-licensed; its original notices are retained. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+SwiftReveal is released under the [MIT License](LICENSE). Vendored reveal.js and Mermaid are MIT-licensed; their original notices and bundled dependency notices are retained. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 The Azure stacked-slides icon (option A) is installed as the app icon. Alternative concepts remain in `Assets/IconOptions`.

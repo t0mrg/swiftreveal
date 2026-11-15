@@ -1,0 +1,132 @@
+{
+  "author" : "",
+  "footer" : "SwiftReveal",
+  "schemaVersion" : 1,
+  "slides" : [
+    {
+      "blocks" : [
+
+      ],
+      "centerTitleHorizontally" : true,
+      "centerTitleVertically" : true,
+      "density" : "comfortable",
+      "id" : "C8AFF1E7-DD92-4899-95C8-AAB8FC846354",
+      "kicker" : "",
+      "layout" : "title",
+      "notes" : "",
+      "split" : 0.5,
+      "subtitle" : "Structured layouts for technical presentations",
+      "title" : "Diagrams and code"
+    },
+    {
+      "blocks" : [
+        {
+          "body" : "flowchart LR\n    C[Confounder] --> X[Exposure]\n    C --> Y[Outcome]\n    X --> Y",
+          "caption" : "Illustrative structure; arrows represent assumed causal relationships.",
+          "heading" : "",
+          "id" : "C722317D-71BA-4D1F-B7FE-7F342410EE3A",
+          "imageFit" : true,
+          "imageMIME" : "image/png",
+          "kind" : "mermaid",
+          "table" : {
+            "headers" : [
+              "Item",
+              "Category",
+              "Value"
+            ],
+            "rows" : [
+              [
+                "Item A",
+                "Group 1",
+                "42"
+              ],
+              [
+                "Item B",
+                "Group 2",
+                "28"
+              ]
+            ]
+          }
+        }
+      ],
+      "density" : "comfortable",
+      "id" : "289FA562-57B1-4A7F-89C0-C59D2F2A10EF",
+      "kicker" : "",
+      "layout" : "figure",
+      "notes" : "",
+      "split" : 0.5,
+      "subtitle" : "",
+      "title" : "A simple causal DAG"
+    },
+    {
+      "blocks" : [
+        {
+          "body" : "```python\ndef mean(values):\n    if not values:\n        return None\n    return sum(values) / len(values)\n\nresult = mean([10, 20, 30])\nprint(result)\n```",
+          "caption" : "",
+          "heading" : "Python example",
+          "id" : "8A039D85-55E2-4666-9154-634FEB3D79CB",
+          "imageFit" : true,
+          "imageMIME" : "image/png",
+          "kind" : "text",
+          "table" : {
+            "headers" : [
+              "Item",
+              "Category",
+              "Value"
+            ],
+            "rows" : [
+              [
+                "Item A",
+                "Group 1",
+                "42"
+              ],
+              [
+                "Item B",
+                "Group 2",
+                "28"
+              ]
+            ]
+          }
+        },
+        {
+          "body" : "Indentation and blank lines are preserved.\n\nUse a language after the opening fence to enable syntax highlighting.\n\nSlide and block font scales also apply to code.",
+          "caption" : "",
+          "heading" : "Readable source",
+          "id" : "DA31BAB5-F4C8-4C3D-84E8-DE2C6CB43803",
+          "imageFit" : true,
+          "imageMIME" : "image/png",
+          "kind" : "callout",
+          "table" : {
+            "headers" : [
+              "Item",
+              "Category",
+              "Value"
+            ],
+            "rows" : [
+              [
+                "Item A",
+                "Group 1",
+                "42"
+              ],
+              [
+                "Item B",
+                "Group 2",
+                "28"
+              ]
+            ]
+          }
+        }
+      ],
+      "density" : "comfortable",
+      "id" : "FEAED0AA-99EE-4669-95B7-D2CF270A10EF",
+      "kicker" : "",
+      "layout" : "twoColumns",
+      "notes" : "",
+      "split" : 0.5,
+      "subtitle" : "",
+      "title" : "Code with its explanation"
+    }
+  ],
+  "theme" : "azure",
+  "title" : "Diagrams and code"
+}

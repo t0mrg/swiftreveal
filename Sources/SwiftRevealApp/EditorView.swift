@@ -12,6 +12,7 @@ struct EditorView: View {
     @State private var exporting = false
     @State private var showDeckSettings = false
     @State private var showStyleEditor = false
+    @State private var showDiagnostics = false
 
     private var slideIndex: Int {
         document.deck.slides.firstIndex { $0.id == selectedSlideID } ?? 0
@@ -32,7 +33,10 @@ struct EditorView: View {
         }
         .navigationTitle(document.deck.title)
         .toolbar { toolbar }
-        .onAppear { if selectedSlideID == nil { selectedSlideID = document.deck.slides.first?.id } }
+        .onAppear {
+            if selectedSlideID == nil { selectedSlideID = document.deck.slides.first?.id }
+            InteractionDiagnostics.shared.start()
+        }
         .onChange(of: selectedSlideID) { _, _ in warnings = []; selectedBlockID = nil }
         .onChange(of: document.deck.slides.map(\.id)) { _, ids in
             if !ids.contains(selectedSlideID ?? UUID()) { selectedSlideID = ids.first }
@@ -41,6 +45,7 @@ struct EditorView: View {
             Button("OK") { errorMessage = nil }
         } message: { Text(errorMessage ?? "") }
         .sheet(isPresented: $showDeckSettings) { deckSettings }
+        .sheet(isPresented: $showDiagnostics) { InteractionDiagnosticsView() }
         .sheet(isPresented: $showStyleEditor) { DeckStyleEditor(deck: $document.deck) }
         .disabled(exporting)
         .overlay { if exporting { ProgressView("Exporting presentation…").padding(28).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14)) } }
@@ -78,8 +83,7 @@ struct EditorView: View {
             .listStyle(.sidebar)
             Divider()
             HStack {
-                Menu { ForEach(SlideLayout.allCases, id: \.self) { layout in Button(layout.label) { add(layout) } } } label: { Label("Add slide", systemImage: "plus") }
-                    .menuStyle(.borderlessButton)
+                InsertionPicker(title: "Add slide", symbol: "plus", choices: SlideLayout.allCases, label: { $0.label }, action: add)
                 Spacer()
                 Button { delete(id: document.deck.slides[slideIndex].id) } label: { Image(systemName: "trash") }
                     .buttonStyle(.borderless).help("Delete selected slide").disabled(document.deck.slides.count <= 1)
@@ -117,7 +121,7 @@ struct EditorView: View {
     @ToolbarContentBuilder
     private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .automatic) {
-            Menu { ForEach(SlideLayout.allCases, id: \.self) { layout in Button(layout.label) { add(layout) } } } label: { Label("Add slide", systemImage: "plus.rectangle") }
+            InsertionPicker(title: "Add slide", symbol: "plus.rectangle", choices: SlideLayout.allCases, label: { $0.label }, action: add)
                 .help("Add a slide with a ready-made layout")
             Button { duplicate(id: document.deck.slides[slideIndex].id) } label: { Label("Duplicate", systemImage: "plus.square.on.square") }.help("Duplicate selected slide")
             Button { moveSelectedBlockToNewSlide() } label: { Label("Split slide", systemImage: "rectangle.split.2x1") }
@@ -125,6 +129,8 @@ struct EditorView: View {
             Button { showDeckSettings = true } label: { Label("Deck settings", systemImage: "paintpalette") }.help("Presentation title, theme and footer")
         }
         ToolbarItemGroup(placement: .primaryAction) {
+            Button { showDiagnostics = true } label: { Label("Diagnostics", systemImage: "stethoscope") }
+                .help("Inspect app, menu and window state")
             Button { showStyleEditor = true } label: { Label("CSS & themes", systemImage: "curlybraces") }.help("Edit deck CSS and save a reusable theme")
             Button { PresentationController.shared.present(deck: document.deck, startIndex: slideIndex) } label: { Label("Present", systemImage: "play.fill") }
             Menu {
@@ -171,7 +177,7 @@ struct EditorView: View {
         let index = slideIndex
         guard let blockIndex = document.deck.slides[index].blocks.firstIndex(where: { $0.id == selectedBlockID }) else { return }
         let block = document.deck.slides[index].blocks.remove(at: blockIndex)
-        let layout: SlideLayout = block.kind == .figure ? .figure : block.kind == .table ? .table : .statement
+        let layout: SlideLayout = (block.kind == .figure || block.kind == .mermaid) ? .figure : block.kind == .table ? .table : .statement
         let slide = Slide(layout: layout, kicker: document.deck.slides[index].kicker,
                           title: document.deck.slides[index].title, density: document.deck.slides[index].density, blocks: [block],
                           background: document.deck.slides[index].background, fontScale: document.deck.slides[index].fontScale)

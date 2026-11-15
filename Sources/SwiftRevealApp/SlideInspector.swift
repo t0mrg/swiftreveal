@@ -42,6 +42,14 @@ struct SlideInspector: View {
                             Text(density.label).tag(density)
                         }
                     }
+                    if slide.layout == .title {
+                        Toggle("Centre title horizontally", isOn: Binding(get: { slide.centerTitleHorizontally ?? false }, set: { slide.centerTitleHorizontally = $0 }))
+                            .disabled(!slide.blocks.isEmpty)
+                        Toggle("Centre title vertically", isOn: Binding(get: { slide.centerTitleVertically ?? false }, set: { slide.centerTitleVertically = $0 }))
+                            .disabled(!slide.blocks.isEmpty)
+                        Text(slide.blocks.isEmpty ? "Aligns the title, subtitle and section label as one group." : "Title alignment is available when there are no content blocks.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                     FontScaleControl(title: "Slide font scale", value: $slide.fontScale)
                     Text("Scales all slide text together, including titles, captions, tables and footer.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -70,16 +78,10 @@ struct SlideInspector: View {
                         blockRow(block, index: index)
                     }
                     HStack {
-                        Menu {
-                            ForEach(BlockKind.allCases, id: \.self) { kind in
-                                Button(kind.label, systemImage: symbol(for: kind)) {
-                                    let block = ContentBlock.starter(kind)
-                                    slide.blocks.append(block)
-                                    selectedBlockID = block.id
-                                }
-                            }
-                        } label: {
-                            Label("Add block", systemImage: "plus")
+                        InsertionPicker(title: "Add block", symbol: "plus", choices: BlockKind.allCases, label: { $0.label }) { kind in
+                            let block = ContentBlock.starter(kind)
+                            slide.blocks.append(block)
+                            selectedBlockID = block.id
                         }
                         Spacer()
                         if selectedBlock != nil {
@@ -276,6 +278,7 @@ struct SlideInspector: View {
         case .metric: return "number"
         case .figure: return "photo"
         case .table: return "tablecells"
+        case .mermaid: return "point.3.connected.trianglepath.dotted"
         }
     }
 }
@@ -317,13 +320,26 @@ private struct BlockContentEditor: View {
                     .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
                     .accessibilityLabel(block.kind == .metric ? "Metric description" : "Block body")
                 if block.kind != .metric {
-                    Text("Use Markdown or safe HTML, such as **bold**, <em>emphasis</em> and <sup>2</sup>. Start lines with - or • for bullets.")
+                    Text("Use Markdown or safe HTML, such as **bold**, <em>emphasis</em> and <sup>2</sup>. Start lines with - or • for bullets. Use fenced code blocks with a language, for example ```python, and a closing ``` on its own line.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             case .figure:
                 figureControls
             case .table:
                 tableControls
+            case .mermaid:
+                Text("Mermaid source").font(.caption).foregroundStyle(.secondary)
+                TextEditor(text: $block.body)
+                    .font(.system(size: 13, design: .monospaced))
+                    .autocorrectionDisabled()
+                    .frame(minHeight: 200, maxHeight: 360)
+                    .padding(5)
+                    .background(.background)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(.quaternary))
+                    .accessibilityLabel("Mermaid diagram source")
+                Text("Use flowchart LR or flowchart TD with arrows such as A[Input] --> B[Output]. Diagrams render as SVG. Invalid source shows an error in the preview.")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             labeledField("Caption / source", text: $block.caption, axis: .vertical)
             Divider().padding(.vertical, 4)
@@ -366,7 +382,7 @@ private struct BlockContentEditor: View {
 
     private var defaultForeground: String {
         if let backgroundTextColor {
-            if layout != .cards && (block.kind == .text || block.kind == .figure) {
+            if layout != .cards && (block.kind == .text || block.kind == .figure || block.kind == .mermaid) {
                 return HexColor.normalized(backgroundTextColor) ?? "#FFFFFF"
             }
             return theme.palette.ink

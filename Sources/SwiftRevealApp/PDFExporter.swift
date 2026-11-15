@@ -20,7 +20,7 @@ enum PDFExportError: LocalizedError {
 /// Captures each slide independently, preserving vector text and exact 16:9 page bounds.
 @MainActor final class PDFExporter: NSObject, WKNavigationDelegate {
     private var webView: WKWebView?
-    private var hostWindow: NSWindow?
+    private var hostWindow: RenderHostPanel?
     private var navigationCompletion: (@MainActor @Sendable (Result<Void, Error>) -> Void)?
     private var exporting = false
 
@@ -33,11 +33,8 @@ enum PDFExportError: LocalizedError {
         let view = WKWebView(frame: NSRect(x: 0, y: 0, width: 1280, height: 720), configuration: configuration)
         view.navigationDelegate = self
         webView = view
-        let host = NSWindow(contentRect: NSRect(x: -10000, y: -10000, width: 1280, height: 720),
-                            styleMask: [.borderless], backing: .buffered, defer: false)
-        host.isReleasedWhenClosed = false
-        host.contentView = view
-        host.orderBack(nil)
+        let host = RenderHostPanel(content: view)
+        host.prepareForRendering()
         hostWindow = host
         defer {
             navigationCompletion = nil
@@ -57,10 +54,14 @@ enum PDFExportError: LocalizedError {
         for index in deck.slides.indices {
             try Task.checkCancellation()
             try await load(HTMLRenderer.singleSlide(deck: deck, slideIndex: index), into: view)
-            // Await actual font/image decoding. Offscreen web views may throttle animation frames,
-            // so the renderer's optional two-frame promise has a bounded fallback after layout.
+            // Await diagram SVG, fonts, image decoding and final layout before capture.
+            // The renderer bounds its animation-frame wait; this operation has a 20s timeout.
             let _: Any? = try await performWithTimeout(stage: "preparing slide \(index + 1)") { finish in
                 view.callAsyncJavaScript("""
+                if (window.swiftRevealDiagramsReady) {
+                  const diagramErrors = await window.swiftRevealDiagramsReady;
+                  if (diagramErrors.length) throw new Error('Cannot export diagram: ' + diagramErrors.join('; '));
+                }
                 await document.fonts.ready;
                 await Promise.all(Array.from(document.images).map(async image => {
                   if (!image.complete) await new Promise(resolve => {
@@ -70,9 +71,7 @@ enum PDFExportError: LocalizedError {
                   if (image.decode && image.naturalWidth) await image.decode().catch(() => {});
                 }));
                 document.documentElement.getBoundingClientRect();
-                if (window.swiftRevealReady) await Promise.race([
-                  window.swiftRevealReady, new Promise(resolve => setTimeout(resolve, 150))
-                ]);
+                if (window.swiftRevealReady) await window.swiftRevealReady;
                 return true;
                 """, arguments: [:], in: nil, in: .page, completionHandler: { result in
                     finish(result.map { Optional($0) })
