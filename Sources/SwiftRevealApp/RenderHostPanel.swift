@@ -6,7 +6,7 @@ import AppKit
     override var canBecomeMain: Bool { false }
 
     init(content: NSView) {
-        super.init(contentRect: NSRect(x: -10000, y: -10000, width: 1280, height: 720),
+        super.init(contentRect: NSRect(x: -10000, y: -10000, width: content.frame.width, height: content.frame.height),
                    styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isReleasedWhenClosed = false
         isFloatingPanel = false

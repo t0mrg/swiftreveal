@@ -12,7 +12,7 @@ struct SlideThumbnail: View {
     @State private var image: NSImage?
 
     private var identity: ThumbnailIdentity {
-        ThumbnailIdentity(slide: deck.slides[index], theme: deck.theme, footer: deck.footer, number: index, count: deck.slides.count, customCSS: deck.customCSS)
+        ThumbnailIdentity(slide: deck.slides[index], theme: deck.theme, footer: deck.footer, number: index, count: deck.slides.count, customCSS: deck.customCSS, aspectRatio: deck.effectiveAspectRatio)
     }
     var body: some View {
         ZStack {
@@ -29,11 +29,11 @@ struct SlideThumbnail: View {
                 }.padding(12).frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .aspectRatio(16.0 / 9, contentMode: .fit)
+        .aspectRatio(deck.effectiveAspectRatio.ratio, contentMode: .fit)
         .clipped()
         .task(id: identity) {
             image = nil
-            let result = await ThumbnailRenderer.shared.image(html: HTMLRenderer.singleSlide(deck: deck, slideIndex: index))
+            let result = await ThumbnailRenderer.shared.image(html: HTMLRenderer.singleSlide(deck: deck, slideIndex: index), aspectRatio: deck.effectiveAspectRatio)
             guard !Task.isCancelled else { return }
             image = result
         }
@@ -48,13 +48,14 @@ private struct ThumbnailIdentity: Equatable {
     let number: Int
     let count: Int
     let customCSS: String?
+    let aspectRatio: DeckAspectRatio
 }
 
 /// One queued WebKit renderer avoids creating a web process for every slide row.
 @MainActor final class ThumbnailRenderer: NSObject, WKNavigationDelegate {
     static let shared = ThumbnailRenderer()
     private let cache = NSCache<NSString, NSImage>()
-    private var requests: [(UUID, String, NSString, CheckedContinuation<NSImage?, Never>)] = []
+    private var requests: [(UUID, String, NSString, CheckedContinuation<NSImage?, Never>, DeckAspectRatio)] = []
     private var processing = false
     private var webView: WKWebView?
     private var window: RenderHostPanel?
@@ -67,14 +68,14 @@ private struct ThumbnailIdentity: Equatable {
         cache.totalCostLimit = 24 * 1_024 * 1_024
     }
 
-    func image(html: String) async -> NSImage? {
-        let key = SHA256.hash(data: Data(html.utf8)).map { String(format: "%02x", $0) }.joined() as NSString
+    func image(html: String, aspectRatio: DeckAspectRatio = .sixteenByNine) async -> NSImage? {
+        let key = SHA256.hash(data: Data((aspectRatio.rawValue + html).utf8)).map { String(format: "%02x", $0) }.joined() as NSString
         if let image = cache.object(forKey: key) { return image }
         let id = UUID()
         return await withTaskCancellationHandler {
             guard !Task.isCancelled else { return nil }
             return await withCheckedContinuation { continuation in
-                requests.append((id, html, key, continuation))
+                requests.append((id, html, key, continuation, aspectRatio))
                 guard !processing else { return }
                 processing = true
                 Task { await drain() }
@@ -90,10 +91,13 @@ private struct ThumbnailIdentity: Equatable {
 
     private func drain() async {
         while !requests.isEmpty {
-            let (_, html, key, continuation) = requests.removeFirst()
+            let (_, html, key, continuation, aspectRatio) = requests.removeFirst()
             if let cached = cache.object(forKey: key) { continuation.resume(returning: cached); continue }
             do {
                 let view = prepareView()
+                let size = NSSize(width: aspectRatio.width, height: aspectRatio.height)
+                window?.setContentSize(size)
+                view.setFrameSize(size)
                 try await timed { finish in
                     self.navigationCompletion = finish
                     self.activeNavigation = view.loadHTMLString(html, baseURL: nil)
@@ -104,14 +108,14 @@ private struct ThumbnailIdentity: Equatable {
                 }
                 let result: NSImage = try await timed { finish in
                     let configuration = WKSnapshotConfiguration()
-                    configuration.rect = CGRect(x: 0, y: 0, width: 1280, height: 720)
+                    configuration.rect = CGRect(origin: .zero, size: size)
                     configuration.snapshotWidth = 256
                     view.takeSnapshot(with: configuration) { image, error in
                         if let image { finish(.success(image)) }
                         else { finish(.failure(error ?? ThumbnailError.failed)) }
                     }
                 }
-                cache.setObject(result, forKey: key, cost: 512 * 288 * 4)
+                cache.setObject(result, forKey: key, cost: Int(result.size.width * result.size.height * 16))
                 continuation.resume(returning: result)
             } catch {
                 webView?.stopLoading()

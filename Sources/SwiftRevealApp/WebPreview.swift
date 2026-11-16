@@ -115,14 +115,14 @@ struct SlideWebPreview: NSViewRepresentable {
           }
         }, true);
         """, injectionTime: .atDocumentStart, forMainFrameOnly: true))
-        let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 1280, height: 720), configuration: configuration)
+        let webView = WKWebView(frame: NSRect(x: 0, y: 0, width: deck.effectiveAspectRatio.width, height: deck.effectiveAspectRatio.height), configuration: configuration)
         webView.navigationDelegate = self
-        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
+        let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: deck.effectiveAspectRatio.width, height: deck.effectiveAspectRatio.height),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable],
                               backing: .buffered, defer: false)
         window.title = "\(deck.title) — Present · ← → to navigate · Esc to close"
         window.contentView = webView
-        window.contentMinSize = NSSize(width: 640, height: 360)
+        window.contentMinSize = NSSize(width: 640, height: 640 / deck.effectiveAspectRatio.ratio)
         window.collectionBehavior = [.fullScreenPrimary]
         window.isReleasedWhenClosed = false
         window.delegate = self

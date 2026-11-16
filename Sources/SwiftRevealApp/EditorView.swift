@@ -145,7 +145,7 @@ struct EditorView: View {
                 Text("·")
                 Text(document.deck.slides[slideIndex].layout.label)
                 Spacer()
-                Text("16:9 · 1280 × 720")
+                Text("\(document.deck.effectiveAspectRatio.label) · \(document.deck.effectiveAspectRatio.width) × \(document.deck.effectiveAspectRatio.height)")
             }.font(.caption).foregroundStyle(.secondary).padding(.horizontal, 22).padding(.vertical, 14)
             SlideWebPreview(deck: document.deck, slideIndex: slideIndex, onWarnings: { warnings = $0 }, onSelectBlock: { selectedBlockID = $0 })
                 .clipShape(RoundedRectangle(cornerRadius: 5))
@@ -173,7 +173,7 @@ struct EditorView: View {
             Button { duplicate(id: document.deck.slides[slideIndex].id) } label: { Label("Duplicate", systemImage: "plus.square.on.square") }.help("Duplicate selected slide")
             Button { moveSelectedBlockToNewSlide() } label: { Label("Split slide", systemImage: "rectangle.split.2x1") }
                 .help("Move the selected block to a new slide").disabled(selectedBlockID == nil)
-            Button { showDeckSettings = true } label: { Label("Deck settings", systemImage: "paintpalette") }.help("Presentation title, theme and footer")
+            Button { showDeckSettings = true } label: { Label("Deck settings", systemImage: "paintpalette") }.help("Presentation title, aspect ratio, theme and footer")
         }
         ToolbarItemGroup(placement: .primaryAction) {
             Button { showOptimization = true } label: { Label("Optimize", systemImage: "arrow.down.right.and.arrow.up.left") }
@@ -196,12 +196,18 @@ struct EditorView: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Presentation settings").font(.title2.bold())
             Form {
+                Picker("Aspect ratio", selection: Binding(
+                    get: { document.deck.effectiveAspectRatio },
+                    set: { document.deck.aspectRatio = $0 }
+                )) {
+                    ForEach(DeckAspectRatio.allCases, id: \.self) { Text($0.label).tag($0) }
+                }.pickerStyle(.segmented)
                 TextField("Title", text: $document.deck.title)
                 TextField("Author", text: $document.deck.author)
                 TextField("Footer", text: $document.deck.footer)
                 Picker("Theme", selection: $document.deck.theme) { ForEach(DeckTheme.allCases, id: \.self) { Text($0.label).tag($0) } }
             }.formStyle(.grouped)
-            Text("Theme changes apply to every slide. Your content and layout choices are preserved.").font(.caption).foregroundStyle(.secondary)
+            Text("Theme and aspect ratio changes apply to every slide. Your content and layout choices are preserved.").font(.caption).foregroundStyle(.secondary)
             HStack { Spacer(); Button("Done") { showDeckSettings = false }.keyboardShortcut(.defaultAction) }
         }.padding(24).frame(width: 460)
     }

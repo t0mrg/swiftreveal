@@ -313,6 +313,20 @@ import SwiftRevealCore
                     }
                 }
             } else { record("PDF opens", false) }
+            var taller = Deck(slides: [Slide(layout: .title, title: "6:4 canvas", subtitle: "Aspect ratio check")], aspectRatio: .sixByFour)
+            let tallerReport = try await browser.render(HTMLRenderer.singleSlide(deck: taller, slideIndex: 0), aspectRatio: .sixByFour)
+            record("6:4 canvas dimensions", tallerReport["size"] as? [Int] == [1296, 864])
+            let tallerThumbnail = await ThumbnailRenderer.shared.image(html: HTMLRenderer.singleSlide(deck: taller, slideIndex: 0), aspectRatio: .sixByFour)
+            record("6:4 thumbnail aspect", tallerThumbnail.map { abs($0.size.width / $0.size.height - 1.5) < 0.01 } ?? false)
+            taller.aspectRatio = .sixteenByNine
+            let wideThumbnail = await ThumbnailRenderer.shared.image(html: HTMLRenderer.singleSlide(deck: taller, slideIndex: 0))
+            record("Thumbnail switches back to 16:9", wideThumbnail.map { abs($0.size.width / $0.size.height - 16.0 / 9) < 0.01 } ?? false)
+            taller.aspectRatio = .sixByFour
+            let tallerPDF = output.appendingPathComponent("Six-by-Four.pdf")
+            try await PDFExporter().export(deck: taller, to: tallerPDF)
+            let tallerPage = PDFDocument(url: tallerPDF)?.page(at: 0)
+            let tallerBounds = tallerPage?.bounds(for: .mediaBox) ?? .zero
+            record("6:4 PDF bounds", abs(tallerBounds.width - 1296) < 0.1 && abs(tallerBounds.height - 864) < 0.1)
         } catch {
             record("Integration harness completed", false, error.localizedDescription)
         }
@@ -351,7 +365,10 @@ import SwiftRevealCore
         window.prepareForRendering()
     }
 
-    func render(_ html: String) async throws -> [String: Any] {
+    func render(_ html: String, aspectRatio: DeckAspectRatio = .sixteenByNine) async throws -> [String: Any] {
+        let size = NSSize(width: aspectRatio.width, height: aspectRatio.height)
+        window.setContentSize(size)
+        webView.setFrameSize(size)
         try await timed { finish in
             self.navigation = finish
             self.webView.loadHTMLString(html, baseURL: nil)
@@ -379,7 +396,7 @@ import SwiftRevealCore
 
     func snapshot(to url: URL) async throws {
         let image: NSImage = try await timed { finish in
-            let config = WKSnapshotConfiguration(); config.rect = NSRect(x: 0, y: 0, width: 1280, height: 720)
+            let config = WKSnapshotConfiguration(); config.rect = self.webView.bounds
             self.webView.takeSnapshot(with: config) { image, error in
                 if let error { finish(.failure(error)) }
                 else if let image { finish(.success(image)) }

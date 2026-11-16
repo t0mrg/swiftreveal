@@ -17,7 +17,7 @@ enum PDFExportError: LocalizedError {
     }
 }
 
-/// Captures each slide independently, preserving vector text and exact 16:9 page bounds.
+/// Captures each slide independently, preserving vector text and the selected aspect ratio.
 @MainActor final class PDFExporter: NSObject, WKNavigationDelegate {
     private var webView: WKWebView?
     private var hostWindow: RenderHostPanel?
@@ -30,7 +30,7 @@ enum PDFExportError: LocalizedError {
         exporting = true
         let configuration = WKWebViewConfiguration()
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
-        let view = WKWebView(frame: NSRect(x: 0, y: 0, width: 1280, height: 720), configuration: configuration)
+        let view = WKWebView(frame: NSRect(x: 0, y: 0, width: deck.effectiveAspectRatio.width, height: deck.effectiveAspectRatio.height), configuration: configuration)
         view.navigationDelegate = self
         webView = view
         let host = RenderHostPanel(content: view)
@@ -78,7 +78,7 @@ enum PDFExportError: LocalizedError {
                 })
             }
             let pdfConfiguration = WKPDFConfiguration()
-            pdfConfiguration.rect = CGRect(x: 0, y: 0, width: 1280, height: 720)
+            pdfConfiguration.rect = CGRect(x: 0, y: 0, width: deck.effectiveAspectRatio.width, height: deck.effectiveAspectRatio.height)
             let data: Data = try await performWithTimeout(stage: "capturing slide \(index + 1)") { finish in
                 view.createPDF(configuration: pdfConfiguration, completionHandler: finish)
             }

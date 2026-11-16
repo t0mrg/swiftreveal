@@ -121,6 +121,15 @@ public struct Slide: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+/// Logical canvas sizes keep layout and export geometry consistent across the app.
+public enum DeckAspectRatio: String, Codable, CaseIterable, Sendable {
+    case sixteenByNine, sixByFour
+    public var label: String { self == .sixteenByNine ? "16:9" : "6:4" }
+    public var width: Int { self == .sixteenByNine ? 1280 : 1296 }
+    public var height: Int { self == .sixteenByNine ? 720 : 864 }
+    public var ratio: Double { Double(width) / Double(height) }
+}
+
 public struct Deck: Codable, Equatable, Sendable {
     public static let currentVersion = 1
     public var schemaVersion: Int
@@ -131,8 +140,11 @@ public struct Deck: Codable, Equatable, Sendable {
     public var slides: [Slide]
     public var customCSS: String?
     public var customThemeName: String?
-    public init(title: String = "Untitled presentation", author: String = "", footer: String = "SwiftReveal", theme: DeckTheme = .azure, slides: [Slide] = [Slide.starter(.title)], customCSS: String? = nil, customThemeName: String? = nil) {
-        schemaVersion = Self.currentVersion; self.title = title; self.author = author; self.footer = footer; self.theme = theme; self.slides = slides; self.customCSS = customCSS; self.customThemeName = customThemeName
+    /// Missing in legacy documents; those retain the original 16:9 canvas.
+    public var aspectRatio: DeckAspectRatio?
+    public var effectiveAspectRatio: DeckAspectRatio { aspectRatio ?? .sixteenByNine }
+    public init(title: String = "Untitled presentation", author: String = "", footer: String = "SwiftReveal", theme: DeckTheme = .azure, slides: [Slide] = [Slide.starter(.title)], customCSS: String? = nil, customThemeName: String? = nil, aspectRatio: DeckAspectRatio? = nil) {
+        schemaVersion = Self.currentVersion; self.title = title; self.author = author; self.footer = footer; self.theme = theme; self.slides = slides; self.customCSS = customCSS; self.customThemeName = customThemeName; self.aspectRatio = aspectRatio
     }
     /// Start clean while keeping the tutorial deck available as a separate example.
     public static var blank: Deck {

@@ -15,12 +15,13 @@ public enum HTMLRenderer {
     public static func export(deck: Deck) -> String {
         presentation(deck: deck)
     }
-    /// Capture this document at a 1280 × 720 WebKit viewport without scaling.
+    /// Capture at the deck’s logical canvas dimensions without scaling.
     public static func singleSlide(deck: Deck, slideIndex: Int) -> String {
         document(deck: deck, mode: .singleSlide, index: slideIndex)
     }
 
     private static func document(deck: Deck, mode: Mode, index: Int) -> String {
+        let canvas = deck.effectiveAspectRatio
         let index = max(0, min(index, max(0, deck.slides.count - 1)))
         let isPresentation = mode == .presentation
         let revealCSS = isPresentation ? resource("reveal", extension: "css") : ""
@@ -41,7 +42,7 @@ public enum HTMLRenderer {
         if isPresentation {
             startup = """
             const deck = new Reveal(document.querySelector('.reveal'), {
-              width:1280,height:720,margin:0.025,minScale:0.05,maxScale:4,center:false,
+              width:\(canvas.width),height:\(canvas.height),margin:0.025,minScale:0.05,maxScale:4,center:false,
               hash:true,transition:'none',controls:true,progress:true,help:true,
               slideNumber:false,embedded:false,view:'slide',scrollActivationWidth:null,
               pdfMaxPagesPerSlide:1,pdfSeparateFragments:false,showNotes:false
@@ -57,7 +58,7 @@ public enum HTMLRenderer {
             """
         } else if mode == .preview {
             startup = """
-            function fitPreview(){const stage=document.getElementById('stage'); const scale=Math.min(innerWidth/1280,innerHeight/720); stage.style.transform='translate(-50%,-50%) scale('+scale+')';}
+            function fitPreview(){const stage=document.getElementById('stage'); const scale=Math.min(innerWidth/\(canvas.width),innerHeight/\(canvas.height)); stage.style.transform='translate(-50%,-50%) scale('+scale+')';}
             addEventListener('resize',fitPreview); fitPreview();
             document.querySelectorAll('[data-block-id]').forEach(block=>block.addEventListener('click',()=>{
               window.webkit?.messageHandlers?.selectedBlock?.postMessage(block.dataset.blockId);
@@ -151,7 +152,7 @@ public enum HTMLRenderer {
         \(mermaidLicense)
         <meta name="author" content="\(escape(deck.author))">
         <meta name="generator" content="SwiftReveal 0.5">
-        <style>\(revealCSS)\n\(themeCSS(deck.theme.palette))\n\(css)\n\(safeCSS(deck.customCSS ?? ""))</style></head>
+        <style>\(revealCSS)\n\(themeCSS(deck.theme.palette))\n\(css(canvas))\n\(safeCSS(deck.customCSS ?? ""))</style></head>
         <body class="sr-\(modeName) theme-\(deck.theme.rawValue)">\(wrap)
         <script>\(revealJS)</script>
         \(hasDiagrams ? "<script>" + mermaidJS + "</script>" : "")
@@ -276,10 +277,10 @@ public enum HTMLRenderer {
         """
     }
 
-    private static let css = """
+    private static func css(_ canvas: DeckAspectRatio) -> String { """
     *{box-sizing:border-box}html,body{margin:0;padding:0;width:100%;height:100%;background:#20242b;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
-    body.sr-preview,body.sr-capture{overflow:hidden}#stage{width:1280px;height:720px}.sr-preview #stage{position:absolute;top:50%;left:50%;transform-origin:center center}.sr-capture,.sr-capture #stage{width:1280px;height:720px;background:var(--surface)}
-    .sr-slide{position:relative;display:flex;flex-direction:column;width:1280px;height:720px;padding:48px 64px 58px;background:var(--surface);color:var(--ink);text-align:left;overflow:hidden;font-size:calc(25px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.38;letter-spacing:0;word-wrap:break-word;overflow-wrap:anywhere}
+    body.sr-preview,body.sr-capture{overflow:hidden}#stage{width:\(canvas.width)px;height:\(canvas.height)px}.sr-preview #stage{position:absolute;top:50%;left:50%;transform-origin:center center}.sr-capture,.sr-capture #stage{width:\(canvas.width)px;height:\(canvas.height)px;background:var(--surface)}
+    .sr-slide{position:relative;display:flex;flex-direction:column;width:\(canvas.width)px;height:\(canvas.height)px;padding:48px 64px 58px;background:var(--surface);color:var(--ink);text-align:left;overflow:hidden;font-size:calc(25px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.38;letter-spacing:0;word-wrap:break-word;overflow-wrap:anywhere}
     .sr-slide h1,.sr-slide h2,.sr-slide p,.sr-slide ul,.sr-slide li,.sr-slide table,.sr-slide th,.sr-slide td{margin:0;padding:0;text-align:left;line-height:inherit;font-family:inherit;color:inherit;text-shadow:none;text-transform:none;letter-spacing:0}
     .sr-header{flex:none;margin-bottom:28px}.sr-slide .sr-kicker{font-size:calc(15px * var(--slide-font-scale,1) * var(--block-font-scale,1));font-weight:750;letter-spacing:1.7px;text-transform:uppercase;color:var(--accent);margin-bottom:9px}.sr-slide h1{font-size:calc(39px * var(--slide-font-scale,1) * var(--block-font-scale,1));font-weight:730;line-height:1.14;letter-spacing:-.8px;margin:0;white-space:pre-line}.sr-slide .sr-subtitle{font-size:calc(24px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.35;color:var(--secondary);margin:14px 0 0;white-space:pre-line}
     .sr-content{display:grid;grid-template-columns:var(--columns);grid-template-rows:repeat(var(--rows),minmax(0,1fr));gap:26px 36px;flex:1;min-height:0;min-width:0;align-items:stretch}
@@ -304,10 +305,10 @@ public enum HTMLRenderer {
     .sr-copy :is(h1,h2,h3,h4,h5,h6){margin:0 0 .45em;font-weight:700;line-height:1.2}.sr-copy h1{font-size:1.7em}.sr-copy h2{font-size:1.4em}.sr-copy h3{font-size:1.2em}.sr-copy :is(h4,h5,h6){font-size:1em}.sr-copy blockquote{margin:.5em 0;padding:.25em .8em;border-left:3px solid var(--accent)}.sr-copy pre{font-size:.9em;white-space:pre-wrap;overflow-wrap:anywhere}.sr-copy code{font-family:ui-monospace,Menlo,monospace}.sr-copy ol{padding-left:1.1em}.sr-copy hr{width:100%;border:0;border-top:1px solid var(--rule)}
     .sr-copy pre,.sr-copy pre.sr-code{display:block;margin:.5em 0;padding:.75em 1em;border:1px solid var(--rule);border-radius:8px;background:var(--tint);color:var(--ink);font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;font-size:calc(22px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.35;white-space:pre-wrap;overflow-wrap:anywhere;tab-size:4;letter-spacing:0;text-align:left;max-width:100%;box-shadow:none}.sr-copy pre code{display:block;padding:0;margin:0;border:0;background:transparent;color:inherit;font-family:inherit;font-size:inherit;line-height:inherit;white-space:inherit;overflow:visible;max-height:none}.sr-copy :not(pre)>code{font-size:.88em;padding:.08em .24em;background:var(--tint);border-radius:3px}.sr-token-keyword{color:var(--accent);font-weight:650}.sr-token-string{color:var(--deep)}.sr-token-number,.sr-token-type{color:var(--accent)}.sr-token-comment{color:var(--muted);font-style:italic}.sr-token-function{color:var(--secondary);font-weight:600}.layout-title .sr-copy pre{--ink:#fff;--tint:#ffffff16;--rule:#ffffff55;--accent:#a4e5f0;--deep:#b7efd3;--muted:#ffffffb3;--secondary:#efdaaa}
     .sr-preview [data-block-id]{cursor:pointer}.sr-preview [data-block-id]:hover{outline:2px solid #2a78d670;outline-offset:-2px}
-    .reveal{font-family:inherit;font-size:calc(25px * var(--slide-font-scale,1) * var(--block-font-scale,1))}.reveal .slides{text-align:left}.reveal .slides>section{padding:0;width:1280px;height:720px}.reveal .slides .sr-slide{display:flex}.reveal .controls{color:var(--accent)}.reveal .progress{color:var(--accent);height:3px}.reveal aside.notes{display:none}
+    .reveal{font-family:inherit;font-size:calc(25px * var(--slide-font-scale,1) * var(--block-font-scale,1))}.reveal .slides{text-align:left}.reveal .slides>section{padding:0;width:\(canvas.width)px;height:\(canvas.height)px}.reveal .slides .sr-slide{display:flex}.reveal .controls{color:var(--accent)}.reveal .progress{color:var(--accent);height:3px}.reveal aside.notes{display:none}
     #presenter-notes{display:none;position:fixed;z-index:100;left:3%;right:3%;bottom:3%;max-height:35%;overflow:auto;background:#151a22f5;color:#fff;border-radius:12px;padding:24px 30px;font-size:calc(21px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.5;box-shadow:0 4px 30px #0005;white-space:normal}#presenter-notes.visible{display:block}#presenter-notes p{margin:0 0 10px}
     @media print{html,body{background:#fff}#presenter-notes{display:none!important}.sr-slide{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-    """
+    """ }
 }
 
 /// Prefer the relocatable application bundle over SwiftPM's development paths.

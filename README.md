@@ -40,6 +40,8 @@ See [distribution instructions](docs/DISTRIBUTION.md) for publishing releases an
 
 Open `dist/SwiftReveal.app`, then choose **New Document** (or **File → New**). New documents start with a single title slide and no content blocks. An editable tutorial deck remains available in `Examples/Getting-Started.swiftreveal`. Save your own copy with **File → Save** (`⌘S`). The app uses `.swiftreveal` files containing the presentation and embedded figures. Version 0.8 reads legacy JSON and can save a smaller, versioned binary container with deduplicated images and lossless LZFSE compression. Small decks remain plain JSON when a container would not save at least 5% and 1 KiB. The example chart and values are illustrative, not real-world data.
 
+Choose **Deck settings → Aspect ratio** to switch the whole presentation between **16:9** and **6:4** (3:2). Existing files default to 16:9. Previews, thumbnails, presentation mode and HTML/PDF exports use the same canvas. Switching preserves content and custom colours; review any custom CSS or crowded layouts after changing the ratio.
+
 Release ZIPs are provided for both Apple silicon and Intel Macs. The local build script defaults to the architecture of the build machine; use `SWIFTREVEAL_ARCH=arm64` or `SWIFTREVEAL_ARCH=x86_64` to select one explicitly.
 
 ## Image efficiency and document size
@@ -165,7 +167,7 @@ Select a table block, copy cells from Excel or another spreadsheet, then use **P
 
 **Export → HTML** creates a self-contained offline reveal.js presentation, with scripts, styling and images embedded. It can be opened in a browser or shared as a single file. Notes are included in the HTML file; remove confidential notes before sharing.
 
-**Export → PDF** creates one 16:9 page per slide using the same WebKit renderer. Text remains vector text. Embedded figures retain their imported raster resolution. Layout overflow should be resolved before export: a fixed slide cannot display unlimited content.
+**Export → PDF** creates one page per slide in the presentation’s selected aspect ratio using the same WebKit renderer. Text remains vector text. Embedded figures retain their imported raster resolution. Layout overflow should be resolved before export: a fixed slide cannot display unlimited content.
 
 Export creates a separate file. Save the editable `.swiftreveal` document as well.
 
