@@ -4,7 +4,7 @@ A native macOS editor for structured slide presentations. Edit content and selec
 
 ## Features
 
-- Eight structured layouts with automatic margins, alignment and spacing.
+- Eight structured layouts with automatic margins, alignment and spacing, plus deck-wide 16:9 or 6:4 aspect ratios.
 - Multiple presentation windows, navigator multiselection and cross-presentation slide copy/paste above the target selection. Slides inherit the receiving theme while retaining custom colours and embedded content.
 - SVG figure and background imports with embedded vector source, plus Mermaid flowcharts and causal DAGs rendered as offline SVG.
 - Markdown, safe HTML and fenced code blocks with syntax highlighting and preserved indentation.
@@ -142,6 +142,121 @@ Open **CSS & themes** (the braces button) in the toolbar. Edit deck CSS on the l
 Give the result a name and choose **Save as new theme**. It appears under **Apply saved theme** for reuse in other decks. Saving creates a snapshot; later edits affect the current presentation. Use a new name to save another version. Theme snapshots store the base palette and CSS, not your slide contents, per-slide scales or per-block overrides.
 
 **Export theme** and **Import theme** share portable `.swiftrevealtheme.json` files. Saved themes live in SwiftReveal's Application Support folder, while every presentation embeds its own CSS and remains independent of those files. **Reset CSS** clears the deck's custom CSS while retaining its base theme. External resources are blocked, keeping exports self-contained.
+
+
+#### Presentation CSS reference
+
+These are the classes emitted by the default renderer. Add rules in **CSS & themes**; you do not need to edit the app. The same rules travel with the deck and apply to HTML/PDF exports. Optional elements (such as captions) only exist when their content is nonempty. Classes are case-sensitive.
+
+| Selector | Element and default role |
+| --- | --- |
+| `.sr-slide` | Whole slide: canvas, padding, base font, colour and background. |
+| `.sr-header` | Header containing the section label, title and subtitle. |
+| `.sr-kicker` | Small uppercase section label above the title. |
+| `.sr-header > h1` | Slide title. Use this instead of `.sr-slide h1` to avoid changing headings inside rich text. |
+| `.sr-subtitle` | Subtitle below the slide title. |
+| `.sr-content` | Automatic grid containing the content blocks; controls gaps and alignment. |
+| `.sr-block` | Common block wrapper; controls internal spacing, clipping and base text size. |
+| `.sr-heading` | Block heading (`h2`); used as the large value in a metric block. |
+| `.sr-copy` | Rich body text, including paragraphs, lists, safe HTML and code. |
+| `.sr-caption` | Block caption/source; normally 16 px, muted, pushed toward the block bottom. |
+| `.sr-footer` | Bottom footer and slide counter; normally 13 px. |
+| `.sr-footer span:first-child`, `.sr-footer span:last-child` | Footer text and slide counter, respectively. |
+
+**Layout, block and state classes.** Combine these with the content selectors to scope a rule, for example `.layout-title .sr-subtitle` or `.block-figure .sr-caption`.
+
+| Selector | Scope |
+| --- | --- |
+| `.layout-title` | Title layout, including its gradient and larger title typography. |
+| `.layout-statement` | Statement layout with enlarged body text. |
+| `.layout-twoColumns` | Two-column layout. |
+| `.layout-figureAndText` | Figure + commentary layout. |
+| `.layout-cards` | Card layout with bordered, padded blocks. |
+| `.layout-metrics` | Metrics layout. |
+| `.layout-table` | Table layout. |
+| `.layout-figure` | Full-figure layout. |
+| `.block-text`, `.block-callout`, `.block-metric` | Text, callout and metric blocks. |
+| `.block-figure`, `.block-table`, `.block-mermaid` | Image, table and Mermaid blocks. |
+| `.density-comfortable`, `.density-compact` | Slide spacing setting; compact changes gaps, padding and some font sizes. |
+| `.title-only` | Title slide with no content blocks. |
+| `.title-center-horizontal`, `.title-center-vertical` | Enabled title alignment options on a title-only slide. |
+| `.has-background` | Slide with a valid background image; text uses the selected background text colour. |
+| `.custom-bg`, `.custom-fg`, `.custom-accent` | Block has a custom background, foreground or accent colour. |
+| `.custom-header-bg`, `.custom-header-fg` | Block has a custom table-header background or foreground. |
+
+**Images, tables, code and diagrams.**
+
+| Selector | Element and styling scope |
+| --- | --- |
+| `.sr-image-area` | Image frame within a figure block; controls available area and corner radius. |
+| `.sr-image-area > img` | Embedded raster or SVG figure. Fit/crop is set inline by the inspector. |
+| `.sr-placeholder`, `.sr-placeholder span`, `.sr-placeholder small` | Empty/unavailable figure frame, label and helper text. |
+| `.sr-background-layer` | Full-slide background image layer, behind the content. |
+| `.sr-background-image` | Background image, positioned to fill the slide. |
+| `.sr-background-overlay` | Overlay on the background; colour and opacity come from the inspector. |
+| `.sr-background-warning` | Warning for an unavailable/unsupported background. |
+| `.block-table table`, `.block-table th`, `.block-table td` | Structured table, header cells and body cells. |
+| `.block-table thead`, `.block-table tbody`, `.block-table tr` | Table sections and rows; `tbody tr:nth-child(even)` selects striped rows. |
+| `.sr-copy p`, `.sr-copy ul`, `.sr-copy ol`, `.sr-copy li` | Body paragraphs, unordered/ordered lists and list items. |
+| `.sr-copy h1` through `.sr-copy h6` | Headings inside rich body text. |
+| `.sr-copy strong`, `.sr-copy em`, `.sr-copy s`, `.sr-copy mark`, `.sr-copy sub`, `.sr-copy sup` | Inline emphasis, deletion, highlight, subscript and superscript. |
+| `.sr-copy blockquote`, `.sr-copy hr` | Quotation and horizontal rule. |
+| `.sr-copy table`, `.sr-copy th`, `.sr-copy td` | Tables entered as safe HTML inside body text. |
+| `.sr-copy pre`, `.sr-copy pre.sr-code`, `.sr-copy pre code` | Preformatted text, fenced code wrapper and its code element. |
+| `.sr-copy :not(pre) > code` | Inline code. |
+| `.sr-code .language-python` (and `.language-r`, `.language-swift`, etc.) | Code element marked with its normalized fence language; the class is on `code`, not `pre`. |
+| `.sr-token-keyword`, `.sr-token-string`, `.sr-token-number` | Highlighted code keywords, strings and numbers. |
+| `.sr-token-type`, `.sr-token-comment`, `.sr-token-function` | Highlighted code types, comments and functions; emitted when recognized. |
+| `.sr-mermaid`, `.sr-mermaid svg` | Mermaid drawing area and generated inline SVG. |
+| `.sr-mermaid svg text` | Diagram text colour; preserve measured font metrics and anchoring. |
+| `.sr-mermaid .node`, `.sr-mermaid .cluster`, `.sr-mermaid .edgeLabel` | Generated diagram nodes, groups and edge labels. |
+| `.sr-mermaid .flowchart-link`, `.sr-mermaid .edge-thickness-normal`, `.sr-mermaid svg marker path` | Diagram edges and arrowheads. |
+| `.sr-mermaid .edge-pattern-dashed`, `.sr-mermaid .edge-pattern-dotted` | Dashed and dotted edges. |
+| `.sr-diagram-error` | Diagram rendering error message. |
+
+Mermaid’s generated SVG classes are implementation details and may vary between diagram shapes or library versions. Imported SVG images are isolated inside `img` elements: deck CSS can style their frame, but cannot select paths or text inside those images.
+
+**Palette variables.** Set these on `:root` for a deck-wide palette, or on a narrower selector for local changes. Some title/background styles deliberately specify their own colours.
+
+| Variable | Purpose |
+| --- | --- |
+| `--surface`, `--ink` | Main surface and text. |
+| `--secondary`, `--muted` | Secondary text and captions/footer. |
+| `--rule` | Borders and dividing lines. |
+| `--tint`, `--wash` | Subtle panel, table-row and callout fills. |
+| `--accent`, `--deep` | Accent and stronger accent text. |
+| `--cover`, `--cover2` | Title-slide gradient endpoints. |
+| `--block-bg`, `--block-fg`, `--block-accent` | Per-block overrides, used with the corresponding `.custom-*` classes and by Mermaid. |
+| `--block-header-bg`, `--block-header-fg` | Custom table-header colours. |
+| `--slide-text` | Text colour selected for an image-background slide. |
+| `--body-font-size` | Base block font size, where not overridden by a particular block/layout. |
+| `--slide-font-scale`, `--block-font-scale` | Inspector-controlled typography multipliers; prefer the inspector controls. |
+| `--columns`, `--rows` | Renderer-generated grid structure; prefer layout/split controls. |
+
+**Presentation wrappers and targeting individual elements.** `body.sr-preview`, `body.sr-capture` and `body.sr-presentation` identify editor preview, capture (PDF/thumbnails) and presentation/HTML modes. The body also has `.theme-azure`, `.theme-ocean`, `.theme-graphite`, `.theme-forest`, `.theme-ember`, `.theme-plum`, `.theme-sand`, `.theme-midnight` or `.theme-monochrome`. `#stage` wraps preview/capture slides; `.reveal`, `.reveal .slides` and `.reveal .slides > section` wrap the presentation. `.reveal .controls` and `.reveal .progress` style navigation controls and progress. `aside.notes` holds speaker notes; `#presenter-notes` and `#presenter-notes.visible` control the notes overlay. These presentation controls/notes are separate from exported PDF slide content.
+
+Use `.sr-slide[data-slide-index="0"]` for the first slide (zero-based), or `[data-block-id="UUID"]` for a particular block. Slide indices change when reordered; block UUIDs change when duplicated or pasted. Your own retained HTML classes, such as `.emphasis`, can be styled too.
+
+**Cascade and geometry.** Custom CSS is appended after built-in CSS, but normal specificity still applies. Match the built-in selector’s specificity when overriding it: `.sr-block .sr-heading` is stronger than `.sr-heading`. Inspector colours, grid values, image fit and overlay properties are inline; keep those controls as the source of truth unless you deliberately override them. Font scaling measures CSS font sizes and applies the slide/block multipliers once; it skips the generated Mermaid SVG tree. Avoid changing canvas dimensions, `#stage` transforms or reveal.js section geometry: select **16:9** or **6:4** in Deck settings instead. Changing spacing, text sizes or grid structure can cause clipping; review the preview’s overflow warnings and exported pages. External URLs/fonts remain blocked.
+
+Example CSS (paste into **CSS & themes**):
+
+```css
+/* Captions everywhere, with an explicit title-slide variant. */
+.sr-slide .sr-caption { color: #526174; font-size: 17px; }
+.sr-slide.layout-title .sr-caption { color: #ffffff; }
+
+/* Block heading style without changing metric values. */
+.sr-block.block-text .sr-heading { color: #215b83; font-size: 28px; }
+
+/* Title-page subtitle and figure frame. */
+.layout-title .sr-subtitle { max-width: 900px; }
+.sr-image-area { border-radius: 0; }
+
+/* Use palette variables so the rules follow the current theme. */
+.sr-copy .emphasis { color: var(--accent); font-weight: 700; }
+.block-table tbody tr:nth-child(even) { background: var(--wash); }
+```
 
 ### Figures
 
