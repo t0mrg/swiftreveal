@@ -131,10 +131,11 @@ struct SlideInspector: View {
     private var backgroundControls: some View {
         inspectorSection("SLIDE BACKGROUND") {
             if let background = slide.background {
-                if let image = NSImage(data: background.imageData) {
-                    Image(nsImage: image).resizable().scaledToFit()
-                        .frame(maxWidth: .infinity, maxHeight: 110)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                ImportedImagePreview(data: background.imageData, mime: background.imageMIME)
+                    .frame(maxWidth: .infinity).frame(height: 110)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                if background.imageMIME == "image/svg+xml" {
+                    Text("SVG · vector source embedded").font(.caption).foregroundStyle(.secondary)
                 }
                 HStack {
                     Button("Replace image…", action: chooseBackground)
@@ -189,16 +190,16 @@ struct SlideInspector: View {
         let panel = NSOpenPanel()
         panel.title = "Choose a slide background"
         panel.prompt = "Embed Background"
-        panel.allowedContentTypes = [.png, .jpeg, .tiff, .pdf]
+        panel.allowedContentTypes = [.png, .jpeg, .tiff, .pdf, .svg]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let image = try FigureImport.png(from: url)
+                let image = try FigureImport.load(from: url)
                 if var background = slide.background {
-                    background.imageData = image; background.imageMIME = "image/png"; slide.background = background
-                } else { slide.background = SlideBackground(imageData: image) }
+                    background.imageData = image.data; background.imageMIME = image.mime; slide.background = background
+                } else { slide.background = SlideBackground(imageData: image.data, imageMIME: image.mime) }
             } catch { backgroundError = error.localizedDescription }
         }
     }
@@ -409,14 +410,13 @@ private struct BlockContentEditor: View {
 
     private var figureControls: some View {
         VStack(alignment: .leading, spacing: 10) {
-            if let data = block.imageData, let image = NSImage(data: data) {
-                Image(nsImage: image)
-                    .resizable().scaledToFit()
-                    .frame(maxWidth: .infinity, maxHeight: 150)
+            if let data = block.imageData {
+                ImportedImagePreview(data: data, mime: block.imageMIME)
+                    .frame(maxWidth: .infinity).frame(height: 150)
                     .padding(8)
                     .background(Color.primary.opacity(0.035))
                     .clipShape(RoundedRectangle(cornerRadius: 7))
-                Text(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file) + " · embedded in presentation")
+                Text(ByteCountFormatter.string(fromByteCount: Int64(data.count), countStyle: .file) + (block.imageMIME == "image/svg+xml" ? " · SVG vector source embedded" : " · embedded in presentation"))
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 Label("No figure selected", systemImage: "photo")
@@ -435,7 +435,7 @@ private struct BlockContentEditor: View {
                 Text("Fit entire figure").tag(true)
                 Text("Fill and crop").tag(false)
             }
-            Text("PNG, JPEG, TIFF or PDF, up to 20 MB. The first PDF page becomes an embedded image. Large images are reduced to 4,096 pixels.")
+            Text("SVG, PNG, JPEG, TIFF or PDF, up to 20 MB. SVG stays vector. Other formats become PNG; the first PDF page is used and large raster images are reduced to 4,096 pixels.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -472,15 +472,15 @@ private struct BlockContentEditor: View {
         let panel = NSOpenPanel()
         panel.title = "Choose a figure"
         panel.prompt = "Embed Figure"
-        panel.allowedContentTypes = [.png, .jpeg, .tiff, .pdf]
+        panel.allowedContentTypes = [.png, .jpeg, .tiff, .pdf, .svg]
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let normalized = try FigureImport.png(from: url)
-                block.imageData = normalized
-                block.imageMIME = "image/png"
+                let imported = try FigureImport.load(from: url)
+                block.imageData = imported.data
+                block.imageMIME = imported.mime
             } catch {
                 importError = error.localizedDescription
             }
@@ -505,54 +505,5 @@ private func labeledField(_ label: String, text: Binding<String>, axis: Axis = .
             .textFieldStyle(.roundedBorder)
             .lineLimit(axis == .vertical ? 1...5 : 1...1)
             .accessibilityLabel(label)
-    }
-}
-
-/// Normalize user-selected media to a safe raster representation. Nothing is fetched remotely.
-private enum FigureImport {
-    static let maximumBytes = 20 * 1_024 * 1_024
-
-    static func png(from url: URL) throws -> Data {
-        let scoped = url.startAccessingSecurityScopedResource()
-        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
-        let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
-        guard values.isRegularFile == true else { throw ImportError.invalidImage }
-        guard (values.fileSize ?? maximumBytes + 1) <= maximumBytes else { throw ImportError.tooLarge }
-        let data = try Data(contentsOf: url)
-        guard data.count <= maximumBytes else { throw ImportError.tooLarge }
-        guard let image = NSImage(data: data), image.isValid,
-              image.size.width > 0, image.size.height > 0 else { throw ImportError.invalidImage }
-
-        let isPDF = url.pathExtension.lowercased() == "pdf"
-        let representationWidth = image.representations.map(\.pixelsWide).max() ?? 0
-        let representationHeight = image.representations.map(\.pixelsHigh).max() ?? 0
-        let sourceWidth = isPDF ? image.size.width * 2 : CGFloat(max(representationWidth, Int(image.size.width)))
-        let sourceHeight = isPDF ? image.size.height * 2 : CGFloat(max(representationHeight, Int(image.size.height)))
-        let scale = min(1, 4096 / max(sourceWidth, sourceHeight))
-        let width = max(1, Int(sourceWidth * scale))
-        let height = max(1, Int(sourceHeight * scale))
-        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: width, pixelsHigh: height,
-                                            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
-                                            isPlanar: false, colorSpaceName: .deviceRGB,
-                                            bytesPerRow: 0, bitsPerPixel: 0),
-              let context = NSGraphicsContext(bitmapImageRep: bitmap) else { throw ImportError.invalidImage }
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = context
-        context.imageInterpolation = .high
-        image.draw(in: NSRect(x: 0, y: 0, width: width, height: height), from: .zero, operation: .copy, fraction: 1)
-        NSGraphicsContext.restoreGraphicsState()
-        guard let png = bitmap.representation(using: .png, properties: [:]) else { throw ImportError.invalidImage }
-        guard png.count <= maximumBytes else { throw ImportError.tooLarge }
-        return png
-    }
-
-    enum ImportError: LocalizedError {
-        case tooLarge, invalidImage
-        var errorDescription: String? {
-            switch self {
-            case .tooLarge: return "Choose an image smaller than 20 MB, or export a smaller PNG."
-            case .invalidImage: return "The file is not a supported image. Try a PNG, JPEG, TIFF or PDF."
-            }
-        }
     }
 }

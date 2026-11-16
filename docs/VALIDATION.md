@@ -1,5 +1,15 @@
 # SwiftReveal validation
 
+## 0.7.0 testing build — SVG figures and backgrounds
+
+SVG import is enabled for figure and background pickers. A shared static-SVG validator regenerates safe, self-contained XML while retaining paths, text, local styles, gradients, clipping, masks, filters, internal references and embedded PNG/JPEG content. Known external-only W3C SVG DTDs are removed without resolution; scripts, external resources, entity declarations and unsupported active/style constructs are rejected. SVG is revalidated at the rendering boundary for manually edited documents and embedded as an isolated image data URL.
+
+The native importer preserves sanitized SVG bytes/MIME, normalizes raster/PDF imports as before, and uses WebKit for inspector SVG previews without enabling page JavaScript. Existing fit/crop, background overlays, document serialization and slide-transfer payloads apply unchanged. Original illustrative SVG figure/background files and an SVG-Images sample deck are generated with the other examples.
+
+All 86 application tests and three packaging tests pass. Tests cover plotting-tool patterns, CSS/CDATA, namespaces, dimensions, complexity and hostile input, as well as rendering, persistence, duplication, transfer and raster compatibility. The rebuilt Apple silicon app passes strict ad-hoc signature verification. Native integration checks were extended for file import, actual WebKit decoding, clipping/gradient pixels, overlays, and raster-XObject detection in a purely vector PDF fixture. Those GUI/PDF runtime checks have not run in the restricted session; complex PDF effects and font substitutions still require representative user-file testing.
+
+Raster compression/asset deduplication was assessed but not implemented in this feature. No release, tag, push or Homebrew update has been authorized for 0.7.0.
+
 ## 0.6.0 — slide transfer and label layout
 
 The previous checkpoint is commit fefe04d. The new work adds explicit New window/Open controls to the document-based app, navigator multiselection, standard navigator Copy/Paste handling, dedicated slide commands/buttons and a versioned slide-only clipboard payload. Paste captures the receiving window/anchor, inserts above the earliest selected target in source order, retains local settings and embedded bytes, and keeps destination theme/CSS/metadata unchanged. Each paste creates fresh slide/block IDs. Async paste is cancelled on receiving editor closure; context-menu and keyboard/button paste use the same multi-selection anchor policy.

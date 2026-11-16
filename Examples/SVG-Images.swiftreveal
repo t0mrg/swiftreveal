@@ -1,0 +1,73 @@
+{
+  "author" : "",
+  "footer" : "SwiftReveal",
+  "schemaVersion" : 1,
+  "slides" : [
+    {
+      "background" : {
+        "imageData" : "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBoZWlnaHQ9IjkwMCIgdmlld0JveD0iMCAwIDE2MDAgOTAwIiB3aWR0aD0iMTYwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJhc2UiIHgxPSIwIiB4Mj0iMSIgeTE9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxMjNkNzMiPjwvc3RvcD48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwODdmOGMiPjwvc3RvcD48L2xpbmVhckdyYWRpZW50PgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJnbG93Ij48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM3M2I2ZmEiIHN0b3Atb3BhY2l0eT0iMC42Ij48L3N0b3A+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjNzNiNmZhIiBzdG9wLW9wYWNpdHk9IjAiPjwvc3RvcD48L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8cmVjdCBmaWxsPSJ1cmwoI2Jhc2UpIiBoZWlnaHQ9IjkwMCIgd2lkdGg9IjE2MDAiPjwvcmVjdD4KICA8Y2lyY2xlIGN4PSIxMzAwIiBjeT0iMjAwIiBmaWxsPSJ1cmwoI2dsb3cpIiByPSI2NTAiPjwvY2lyY2xlPgogIDxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuMTQiIHN0cm9rZS13aWR0aD0iMyI+CiAgICA8cGF0aCBkPSJNIC0xMDAgNzUwIEMgMzUwIDIwMCA5MDAgMTEwMCAxNzAwIDMwMCI+PC9wYXRoPgogICAgPHBhdGggZD0iTSAtMTAwIDgwMCBDIDM1MCAyNTAgOTAwIDExNTAgMTcwMCAzNTAiPjwvcGF0aD4KICAgIDxwYXRoIGQ9Ik0gLTEwMCA4NTAgQyAzNTAgMzAwIDkwMCAxMjAwIDE3MDAgNDAwIj48L3BhdGg+CiAgPC9nPgo8L3N2Zz4=",
+        "imageFit" : false,
+        "imageMIME" : "image/svg+xml",
+        "overlayColor" : "#102036",
+        "overlayOpacity" : 0.2,
+        "textColor" : "#FFFFFF"
+      },
+      "blocks" : [
+
+      ],
+      "centerTitleHorizontally" : true,
+      "centerTitleVertically" : true,
+      "density" : "comfortable",
+      "id" : "E3CDA0A4-F8D4-4F74-800B-526E32370A6A",
+      "kicker" : "",
+      "layout" : "title",
+      "notes" : "",
+      "split" : 0.5,
+      "subtitle" : "A scalable SVG background with the usual overlay controls",
+      "title" : "Vector backgrounds"
+    },
+    {
+      "blocks" : [
+        {
+          "body" : "",
+          "caption" : "Original illustrative vector artwork · fit/crop, save and copy like other figures",
+          "heading" : "",
+          "id" : "4C864312-02D9-4890-A4F2-1A5BEB5E23B1",
+          "imageData" : "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDEyMDAgNjAwIiB3aWR0aD0iMTIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9InBhbmVsIiB4MT0iMCIgeDI9IjEiIHkxPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2U3ZWZmYSI+PC9zdG9wPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2Q2ZjFlYyI+PC9zdG9wPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxtYXJrZXIgaWQ9ImFycm93IiBtYXJrZXJIZWlnaHQ9IjEwIiBtYXJrZXJVbml0cz0ic3Ryb2tlV2lkdGgiIG1hcmtlcldpZHRoPSIxMCIgb3JpZW50PSJhdXRvIiByZWZYPSI4IiByZWZZPSI1Ij48cGF0aCBkPSJNIDAgMCBMIDEwIDUgTCAwIDEwIHoiIGZpbGw9IiMxNzRkOGYiPjwvcGF0aD48L21hcmtlcj4KICAgIDxjbGlwUGF0aCBpZD0iY2hhcnQtY2xpcCI+PHJlY3QgaGVpZ2h0PSIyMDAiIHJ4PSIxNiIgd2lkdGg9IjEwMjAiIHg9IjkwIiB5PSIzMDAiPjwvcmVjdD48L2NsaXBQYXRoPgogICAgPHN0eWxlPi5oZWFkaW5ne2ZvbnQtZmFtaWx5OkFyaWFsLHNhbnMtc2VyaWY7Zm9udC1zaXplOjM0cHg7Zm9udC13ZWlnaHQ6NzAwO2ZpbGw6IzE3NGQ4Zn0ubGFiZWx7Zm9udC1mYW1pbHk6QXJpYWwsc2Fucy1zZXJpZjtmb250LXNpemU6MjhweDt0ZXh0LWFuY2hvcjptaWRkbGU7ZmlsbDojMTc0ZDhmfS5jYXB0aW9ue2ZvbnQtZmFtaWx5OkFyaWFsLHNhbnMtc2VyaWY7Zm9udC1zaXplOjIycHg7ZmlsbDojNTU1ZTZhfTwvc3R5bGU+CiAgPC9kZWZzPgogIDxyZWN0IGZpbGw9IiNmZmZmZmYiIGhlaWdodD0iNTkyIiByeD0iMjgiIHN0cm9rZT0iI2RmZTNlOSIgc3Ryb2tlLXdpZHRoPSIzIiB3aWR0aD0iMTE5MiIgeD0iNCIgeT0iNCI+PC9yZWN0PgogIDx0ZXh0IGNsYXNzPSJoZWFkaW5nIiB4PSI2MCIgeT0iNzAiPkEgc2VsZi1jb250YWluZWQgU1ZHIGZpZ3VyZTwvdGV4dD4KICA8ZyBmaWxsPSJ1cmwoI3BhbmVsKSIgc3Ryb2tlPSIjMmE3OGQ2IiBzdHJva2Utd2lkdGg9IjMiPgogICAgPHJlY3QgaGVpZ2h0PSIxMjAiIHJ4PSIxOCIgd2lkdGg9IjI4MCIgeD0iNzAiIHk9IjEyNSI+PC9yZWN0PgogICAgPHJlY3QgaGVpZ2h0PSIxMjAiIHJ4PSIxOCIgd2lkdGg9IjI4MCIgeD0iNDYwIiB5PSIxMjUiPjwvcmVjdD4KICAgIDxyZWN0IGhlaWdodD0iMTIwIiByeD0iMTgiIHdpZHRoPSIyODAiIHg9Ijg1MCIgeT0iMTI1Ij48L3JlY3Q+CiAgPC9nPgogIDxnIGNsYXNzPSJsYWJlbCI+PHRleHQgeD0iMjEwIiB5PSIxOTUiPklucHV0PC90ZXh0Pjx0ZXh0IHg9IjYwMCIgeT0iMTk1Ij5Qcm9jZXNzPC90ZXh0Pjx0ZXh0IHg9Ijk5MCIgeT0iMTk1Ij5PdXRwdXQ8L3RleHQ+PC9nPgogIDxnIG1hcmtlci1lbmQ9InVybCgjYXJyb3cpIiBzdHJva2U9IiMxNzRkOGYiIHN0cm9rZS13aWR0aD0iNCI+PHBhdGggZD0iTSAzNjAgMTg1IEggNDQwIj48L3BhdGg+PHBhdGggZD0iTSA3NTAgMTg1IEggODMwIj48L3BhdGg+PC9nPgogIDxnIGNsaXAtcGF0aD0idXJsKCNjaGFydC1jbGlwKSI+CiAgICA8cmVjdCBmaWxsPSJ1cmwoI3BhbmVsKSIgaGVpZ2h0PSIyMDAiIHdpZHRoPSIxMDIwIiB4PSI5MCIgeT0iMzAwIj48L3JlY3Q+CiAgICA8cGF0aCBkPSJNIDcwIDQ4MCBDIDI3MCA0NzAgMzAwIDMyMCA1MDAgMzYwIFMgODIwIDUyMCAxMTMwIDMxMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDg3ZjhjIiBzdHJva2Utd2lkdGg9IjgiPjwvcGF0aD4KICA8L2c+CiAgPHRleHQgY2xhc3M9ImNhcHRpb24iIHg9IjkwIiB5PSI1NTAiPlZlY3RvciB0ZXh0LCBwYXRocywgZ3JhZGllbnRzLCBjbGlwcGluZyBhbmQgYXJyb3doZWFkcyDigJQgaWxsdXN0cmF0aXZlIGFydHdvcmsuPC90ZXh0Pgo8L3N2Zz4=",
+          "imageFit" : true,
+          "imageMIME" : "image/svg+xml",
+          "kind" : "figure",
+          "table" : {
+            "headers" : [
+              "Item",
+              "Category",
+              "Value"
+            ],
+            "rows" : [
+              [
+                "Item A",
+                "Group 1",
+                "42"
+              ],
+              [
+                "Item B",
+                "Group 2",
+                "28"
+              ]
+            ]
+          }
+        }
+      ],
+      "density" : "comfortable",
+      "id" : "181B4DB0-1732-4F82-9BED-2B4059234615",
+      "kicker" : "",
+      "layout" : "figure",
+      "notes" : "",
+      "split" : 0.5,
+      "subtitle" : "",
+      "title" : "SVG figure"
+    }
+  ],
+  "theme" : "azure",
+  "title" : "SVG images"
+}

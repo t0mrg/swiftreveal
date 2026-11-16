@@ -6,7 +6,7 @@ A native macOS editor for structured slide presentations. Edit content and selec
 
 - Eight structured layouts with automatic margins, alignment and spacing.
 - Multiple presentation windows, navigator multiselection and cross-presentation slide copy/paste above the target selection. Slides inherit the receiving theme while retaining custom colours and embedded content.
-- Mermaid flowcharts and causal DAGs rendered as offline SVG, with centred labels and consistent HTML/PDF output.
+- SVG figure and background imports with embedded vector source, plus Mermaid flowcharts and causal DAGs rendered as offline SVG.
 - Markdown, safe HTML and fenced code blocks with syntax highlighting and preserved indentation.
 - Nine themes, per-block/table colours, slide background images, a deck CSS editor and reusable custom themes.
 - Independent slide/block font scaling and horizontal/vertical title-slide centring.
@@ -126,7 +126,13 @@ Give the result a name and choose **Save as new theme**. It appears under **Appl
 
 ### Figures
 
-Select a figure block and import PNG, JPEG, TIFF or PDF. The first page of a PDF is used. Imports are normalized to an embedded PNG with a maximum edge of 4096 pixels, so no external file links can break. Choose **Fit** to retain the whole figure, or crop to fill its frame. Add a caption/source below. Vector source import is rasterized in this release; vector chart authoring is deferred.
+Select a figure block and import SVG, PNG, JPEG, TIFF or PDF, up to 20 MB. The first page of a PDF is used. Raster/PDF imports are normalized to an embedded PNG with a maximum edge of 4096 pixels. SVG imports retain static vector artwork and are not converted to PNG. Choose **Fit** to retain the whole figure, or crop to fill its frame. Add a caption/source below.
+
+SVGs can also be chosen for slide backgrounds using the same fit/crop and overlay controls. Inspector previews, navigator thumbnails, offline HTML and PDF capture use the validated embedded image. Saving, duplication and slide copy/paste retain its vector bytes and MIME type.
+
+Supported SVG artwork includes paths, shapes, text, CSS classes/styles, gradients, masks, clipping, filters and internal symbol/image references. Embedded PNG/JPEG images are supported. SVGs must be self-contained and static: scripts, animations, embedded HTML, external resources, web-font imports and unsupported CSS are rejected with an import error. Export text as paths when a particular font must look identical on other Macs.
+
+Try `Examples/SVG-Figure.svg` and `Examples/SVG-Background.svg`, or open `Examples/SVG-Images.swiftreveal`. SVG source stays vector in the document and HTML; PDF rendering uses WebKit, so complex effects can require rasterization and should be checked at export.
 
 ### Background images
 

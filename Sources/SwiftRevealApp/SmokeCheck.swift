@@ -208,6 +208,70 @@ import SwiftRevealCore
             }
             record("Failed Mermaid export preserves existing file", (try? Data(contentsOf: unchangedPDF)) == sentinel)
 
+            // Imported SVGs stay independent image documents. Check the
+            // actual WebKit decoder, gradients and clipping as well as HTML.
+            let vectorSource = """
+                <svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+                  <defs><linearGradient id="paint"><stop offset="0" stop-color="#087F8C"/><stop offset="1" stop-color="#2A78D6"/></linearGradient>
+                  <clipPath id="frame"><rect x="10" y="10" width="620" height="340" rx="20"/></clipPath></defs>
+                  <g clip-path="url(#frame)"><rect width="640" height="360" fill="url(#paint)"/>
+                  <text x="320" y="190" text-anchor="middle" fill="white" font-family="Arial" font-size="32">Vector artwork</text></g>
+                </svg>
+                """
+            let importedSVGURL = output.appendingPathComponent("Imported-Vector.SVG")
+            try Data(vectorSource.utf8).write(to: importedSVGURL, options: .atomic)
+            let importedSVG = try FigureImport.load(from: importedSVGURL)
+            record("SVG importer preserves vector MIME", importedSVG.mime == "image/svg+xml")
+            record("SVG importer preserves vector markup", importedSVG.data == (try SVGImage.sanitize(Data(vectorSource.utf8))))
+            if let originalPNG = deck.slides.flatMap({ $0.blocks }).compactMap(\.imageData).first {
+                let importedPNGURL = output.appendingPathComponent("Imported-Raster.png")
+                try originalPNG.write(to: importedPNGURL, options: .atomic)
+                let importedPNG = try FigureImport.load(from: importedPNGURL)
+                record("Raster importer remains PNG", importedPNG.mime == "image/png" && NSImage(data: importedPNG.data) != nil)
+            }
+            let vectorData = try SVGImage.sanitize(Data(vectorSource.utf8))
+            let vectorFigure = ContentBlock(kind: .figure, imageData: vectorData, imageMIME: "image/svg+xml", imageFit: true)
+            let vectorDeck = Deck(slides: [
+                Slide(layout: .figure, title: "SVG figure", blocks: [vectorFigure]),
+                Slide(layout: .title, title: "SVG background", background: SlideBackground(imageData: vectorData, imageMIME: "image/svg+xml", imageFit: false, overlayColor: "#000000", overlayOpacity: 0.25), centerTitleHorizontally: true, centerTitleVertically: true)
+            ])
+            for index in vectorDeck.slides.indices {
+                let vectorReport = try await browser.render(HTMLRenderer.singleSlide(deck: vectorDeck, slideIndex: index))
+                record("SVG image decodes on slide \(index + 1)", (vectorReport["errors"] as? [String] ?? []).isEmpty)
+                let vectorImage = try await browser.run("""
+                    const image=document.querySelector('img');
+                    const canvas=document.createElement('canvas');canvas.width=640;canvas.height=360;
+                    const context=canvas.getContext('2d');context.drawImage(image,0,0,640,360);
+                    const outside=context.getImageData(5,5,1,1).data;
+                    const left=context.getImageData(100,60,1,1).data,right=context.getImageData(540,60,1,1).data;
+                    return {decoded:image.complete && image.naturalWidth===640 && image.naturalHeight===360,
+                      vector:image.src.startsWith('data:image/svg+xml;base64,'),fit:getComputedStyle(image).objectFit,
+                      clip:outside[3]===0,gradient:left[3]===255 && right[3]===255 && Math.abs(left[2]-right[2])>20,
+                      isolated:document.querySelector('#paint,#frame')===null,
+                      overlay:document.querySelector('.sr-background-overlay') ? getComputedStyle(document.querySelector('.sr-background-overlay')).opacity : null};
+                    """) as? [String: Any] ?? [:]
+                record("SVG intrinsic dimensions \(index + 1)", vectorImage["decoded"] as? Bool == true)
+                record("SVG stays vector and isolated \(index + 1)", vectorImage["vector"] as? Bool == true && vectorImage["isolated"] as? Bool == true)
+                record("SVG gradients and clipping render \(index + 1)", vectorImage["clip"] as? Bool == true && vectorImage["gradient"] as? Bool == true)
+                record("SVG fit/crop \(index + 1)", vectorImage["fit"] as? String == (index == 0 ? "contain" : "cover"))
+                if index == 1 { record("SVG background overlay", vectorImage["overlay"] as? String == "0.25") }
+                try await browser.snapshot(to: output.appendingPathComponent("svg-image-\(index + 1).png"))
+            }
+            let invalidSVG = Data("<svg xmlns=\"http://www.w3.org/2000/svg\"><g>".utf8)
+            let invalidSVGDeck = Deck(slides: [Slide(blocks: [ContentBlock(kind: .figure, imageData: invalidSVG, imageMIME: "image/svg+xml")], background: SlideBackground(imageData: invalidSVG, imageMIME: "image/svg+xml"))])
+            let invalidSVGReport = try await browser.render(HTMLRenderer.singleSlide(deck: invalidSVGDeck, slideIndex: 0))
+            let invalidSVGWarnings = invalidSVGReport["warnings"] as? [String] ?? []
+            record("Invalid edited-document SVG has visible warnings", invalidSVGWarnings.contains(where: { $0.contains("figure SVG") }) && invalidSVGWarnings.contains(where: { $0.contains("background SVG") }))
+            let vectorPDFURL = output.appendingPathComponent("SVG-Images.pdf")
+            try await PDFExporter().export(deck: vectorDeck, to: vectorPDFURL)
+            let vectorPDF = PDFDocument(url: vectorPDFURL)
+            record("SVG PDF has all pages", vectorPDF?.pageCount == vectorDeck.slides.count)
+            let vectorPDFBytes = try Data(contentsOf: vectorPDFURL)
+            let vectorPDFSource = String(decoding: vectorPDFBytes, as: UTF8.self)
+            // This fixture has no raster image elements. A PDF Image XObject
+            // would reveal WebKit rasterization rather than vector capture.
+            record("SVG PDF avoids raster image XObjects", vectorPDFSource.range(of: #"/Subtype\s*/Image\b"#, options: .regularExpression) == nil)
+
             let malicious = "</script><script>window.smokeInjection=true</script><img src=https://example.invalid/tracker>"
             var unsafe = Deck(title: malicious, slides: [Slide(title: malicious, subtitle: malicious, blocks: [ContentBlock(kind: .text, heading: malicious, body: malicious, caption: malicious)])])
             unsafe.author = malicious; unsafe.footer = malicious

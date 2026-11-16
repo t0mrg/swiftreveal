@@ -98,3 +98,16 @@ The actual commands run and their outcomes are recorded in `docs/VALIDATION.md` 
 - [ ] Compare Mermaid label centring and containment in preview, navigator, offline HTML and PDF.
 
 Obtain user acceptance after the implementation commit before deploying a release. The user accepted the 0.6.0 testing build and authorized publication.
+
+## SVG images and backgrounds (0.7 testing)
+
+- [ ] Import Examples/SVG-Figure.svg as a figure and Examples/SVG-Background.svg as a background; inspect source text, arrows, gradients and clipping.
+- [ ] Try representative SVG exports from plotting/design tools, including defs/use glyphs, masks, local CSS and transparent artwork.
+- [ ] Verify inspector previews and navigator thumbnails; switch themes, fit/crop, overlays and image replacements between SVG/raster formats.
+- [ ] Save/reopen, duplicate and copy/paste SVG slides across decks; source stays SVG and custom slide settings remain.
+- [ ] Export offline HTML and PDF; zoom in on simple paths/text and inspect complex filters/font substitutions.
+- [ ] Run Help → Run Integration Checks for real WebKit decoding, SVG colour/clip pixels, background overlays and a PDF no-raster-XObject check for a purely vector fixture.
+- [ ] Import an SVG with a script/external image or unsupported feature: expect a readable error and no replacement of the existing image.
+- [ ] Confirm existing PNG/JPEG/TIFF/PDF imports continue to work.
+
+This testing build is not a new public release until separately authorized.

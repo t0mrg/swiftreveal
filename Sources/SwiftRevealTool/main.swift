@@ -16,6 +16,11 @@ do {
     let formatting = Deck.formattingExamples
     try formatting.encoded().write(to: directory.appendingPathComponent("Diagrams-and-Code.swiftreveal"), options: .atomic)
     try HTMLRenderer.export(deck: formatting).write(to: directory.appendingPathComponent("Diagrams-and-Code.html"), atomically: true, encoding: .utf8)
+    let vectors = try SVGExamples.deck()
+    try vectors.encoded().write(to: directory.appendingPathComponent("SVG-Images.swiftreveal"), options: .atomic)
+    try HTMLRenderer.export(deck: vectors).write(to: directory.appendingPathComponent("SVG-Images.html"), atomically: true, encoding: .utf8)
+    try SVGExamples.figure.write(to: directory.appendingPathComponent("SVG-Figure.svg"), options: .atomic)
+    try SVGExamples.background.write(to: directory.appendingPathComponent("SVG-Background.svg"), options: .atomic)
     print("Created editable sample and offline HTML in \(directory.path)")
 } catch {
     FileHandle.standardError.write(Data("Example generation failed: \(error.localizedDescription)\n".utf8))

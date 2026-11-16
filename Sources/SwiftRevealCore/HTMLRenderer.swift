@@ -69,6 +69,7 @@ public enum HTMLRenderer {
         \(startup)
         window.swiftRevealReport = function() {
           const warnings=[...(window.swiftRevealDiagramErrors || [])];
+          document.querySelectorAll('[data-image-warning]').forEach(node=>warnings.push(node.dataset.imageWarning));
           const slide=document.querySelector('.sr-slide');
           if(slide){
             const header=slide.querySelector('.sr-header');
@@ -169,6 +170,7 @@ public enum HTMLRenderer {
         return """
         <article class="sr-slide \(background.isEmpty ? "" : "has-background ")layout-\(slide.layout.rawValue) density-\(slide.density.rawValue)\(titleClasses)" data-slide-index="\(index)" style="--columns:\(grid);--rows:\(rows);--slide-font-scale:\(FontScaling.effective(slide.fontScale));--block-font-scale:1;\(backgroundTextStyle(slide.background))">
         \(background)
+        \(backgroundWarningMarkup(slide.background))
           <header class="sr-header">
             \(slide.kicker.isEmpty ? "" : "<div class=\"sr-kicker\">\(RichText.inline(slide.kicker))</div>")
             <h1>\(RichText.inline(slide.title))</h1>
@@ -190,8 +192,11 @@ public enum HTMLRenderer {
             contents = heading + copy + caption
         case .figure:
             let image: String
-            if let data = block.imageData, !data.isEmpty, ["image/png", "image/jpeg", "image/gif", "image/webp", "image/tiff"].contains(block.imageMIME) {
-                image = "<img alt=\"\(escape(block.caption.isEmpty ? block.heading : block.caption))\" src=\"data:\(block.imageMIME);base64,\(data.base64EncodedString())\" style=\"object-fit:\(block.imageFit ? "contain" : "cover")\">"
+            if let data = block.imageData, let url = EmbeddedImage.dataURL(data: data, mime: block.imageMIME) {
+                image = "<img alt=\"\(escape(block.caption.isEmpty ? block.heading : block.caption))\" src=\"\(url)\" style=\"object-fit:\(block.imageFit ? "contain" : "cover")\">"
+            } else if block.imageMIME == "image/svg+xml", block.imageData != nil {
+                let message = "The figure SVG is invalid or contains unsupported content. Reimport this image."
+                image = "<div class=\"sr-placeholder\" data-image-warning=\"\(message)\"><span>SVG unavailable</span><small>\(message)</small></div>"
             } else {
                 image = "<div class=\"sr-placeholder\"><span>Figure</span><small>Choose an image in the content inspector</small></div>"
             }
@@ -224,8 +229,6 @@ public enum HTMLRenderer {
         return value
     }
 
-    private static let rasterTypes = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/tiff"]
-
     private static func themeCSS(_ palette: ThemePalette) -> String {
         let values = [("surface",palette.surface),("ink",palette.ink),("secondary",palette.secondary),
                       ("muted",palette.muted),("rule",palette.rule),("tint",palette.tint),("accent",palette.accent),
@@ -248,7 +251,7 @@ public enum HTMLRenderer {
     }
 
     private static func usableBackground(_ background: SlideBackground?) -> SlideBackground? {
-        guard let background, !background.imageData.isEmpty, rasterTypes.contains(background.imageMIME) else { return nil }
+        guard let background, EmbeddedImage.isSupported(data: background.imageData, mime: background.imageMIME) else { return nil }
         return background
     }
 
@@ -257,12 +260,19 @@ public enum HTMLRenderer {
         return "--slide-text:" + (HexColor.normalized(background.textColor) ?? "#FFFFFF")
     }
 
+    private static func backgroundWarningMarkup(_ background: SlideBackground?) -> String {
+        guard let background, background.imageMIME == "image/svg+xml",
+              !EmbeddedImage.isSupported(data: background.imageData, mime: background.imageMIME) else { return "" }
+        let message = "The background SVG is invalid or contains unsupported content. Reimport this image."
+        return "<div class=\"sr-background-warning\" data-image-warning=\"\(message)\" role=\"note\">Background SVG unavailable — reimport this image.</div>"
+    }
+
     private static func backgroundMarkup(_ background: SlideBackground?) -> String {
-        guard let background = usableBackground(background) else { return "" }
+        guard let background, let url = EmbeddedImage.dataURL(data: background.imageData, mime: background.imageMIME) else { return "" }
         let color = HexColor.normalized(background.overlayColor) ?? "#102036"
         let opacity = background.overlayOpacity.isFinite ? max(0, min(1, background.overlayOpacity)) : 0.45
         return """
-        <div class="sr-background-layer" aria-hidden="true"><img class="sr-background-image" alt="" src="data:\(background.imageMIME);base64,\(background.imageData.base64EncodedString())" style="object-fit:\(background.imageFit ? "contain" : "cover")"><div class="sr-background-overlay" style="background:\(color);opacity:\(opacity)"></div></div>
+        <div class="sr-background-layer" aria-hidden="true"><img class="sr-background-image" alt="" src="\(url)" style="object-fit:\(background.imageFit ? "contain" : "cover")"><div class="sr-background-overlay" style="background:\(color);opacity:\(opacity)"></div></div>
         """
     }
 
@@ -283,6 +293,7 @@ public enum HTMLRenderer {
     .block-mermaid{gap:10px}.sr-mermaid{font-size:calc(22px * var(--slide-font-scale,1) * var(--block-font-scale,1));flex:1;min-height:60px;min-width:0;display:flex;align-items:center;justify-content:center;overflow:hidden}.sr-mermaid svg{display:block;width:100%;height:100%;max-width:100%;max-height:100%;overflow:visible}.sr-mermaid svg text{fill:var(--block-fg,var(--ink));font-family:inherit}.sr-mermaid svg :is(.node .label text,.rough-node .label text,.flowchart-label text,.flowchartTitleText){text-anchor:middle}.sr-mermaid svg :is(.node .label,.rough-node .label){text-align:center}.sr-mermaid svg :is(.node rect,.node circle,.node ellipse,.node polygon,.node path){fill:var(--block-bg,var(--tint));stroke:var(--block-accent,var(--accent));stroke-width:1.5px}.sr-mermaid svg :is(.flowchart-link,.edge-thickness-normal){stroke:var(--block-accent,var(--accent));stroke-width:2px;fill:none}.sr-mermaid svg marker path{fill:var(--block-accent,var(--accent));stroke:var(--block-accent,var(--accent))}.sr-mermaid svg .cluster rect{fill:var(--wash);stroke:var(--rule)}.sr-mermaid svg .edgeLabel rect{fill:var(--surface);opacity:.95}.sr-mermaid svg .edge-pattern-dashed{stroke-dasharray:5,5}.sr-mermaid svg .edge-pattern-dotted{stroke-dasharray:2,3}.sr-diagram-error{color:var(--ink);background:var(--wash);border:2px solid var(--accent);border-radius:8px;padding:20px;font-size:calc(18px * var(--slide-font-scale,1) * var(--block-font-scale,1));white-space:pre-wrap;overflow-wrap:anywhere}.layout-title .sr-mermaid{--ink:#fff;--tint:#ffffff16;--accent:#a4e5f0;--surface:var(--cover)}
     .layout-statement .sr-content{align-content:center}.layout-statement .block-text{justify-content:center;font-size:calc(38px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.35;letter-spacing:-.5px}.layout-statement .block-text .sr-heading{font-size:calc(42px * var(--slide-font-scale,1) * var(--block-font-scale,1))}.layout-cards .sr-content{gap:20px}.layout-cards .sr-block{border:1.5px solid var(--rule);border-radius:11px;padding:22px 25px;font-size:calc(22px * var(--slide-font-scale,1) * var(--block-font-scale,1));background:var(--surface)}.layout-cards .block-callout{border-left:5px solid var(--accent)}.layout-cards .sr-heading{font-size:calc(24px * var(--slide-font-scale,1) * var(--block-font-scale,1));color:var(--deep)}
     .density-compact .sr-header{margin-bottom:20px}.density-compact .sr-content{gap:18px 26px}.density-compact .sr-block{gap:9px}.density-compact{--body-font-size:22px;font-size:calc(22px * var(--slide-font-scale,1) * var(--block-font-scale,1))}.density-compact .block-callout,.density-compact.layout-cards .sr-block{font-size:calc(21px * var(--slide-font-scale,1) * var(--block-font-scale,1));padding:18px 21px}.density-compact .sr-copy p+p{margin-top:11px}.density-compact .sr-copy li{margin-bottom:9px}.density-compact table{font-size:calc(19px * var(--slide-font-scale,1) * var(--block-font-scale,1))}.density-compact th,.density-compact td{padding-top:8px;padding-bottom:8px}
+    .sr-background-warning{position:absolute;top:8px;left:64px;right:64px;z-index:2;padding:3px 8px;background:var(--wash);color:var(--ink);border:1px solid var(--rule);border-radius:4px;font-size:calc(14px * var(--slide-font-scale,1) * var(--block-font-scale,1));line-height:1.3;pointer-events:none}
     .sr-background-layer,.sr-background-overlay{position:absolute;inset:0;pointer-events:none}.sr-background-layer{z-index:0;background:var(--surface)}.sr-slide .sr-background-image{width:100%;height:100%;position:absolute;inset:0;border-radius:0}.sr-slide .sr-header,.sr-slide .sr-content{position:relative;z-index:1}.sr-slide .sr-footer{z-index:1}
     .has-background{color:var(--slide-text)}.has-background .sr-header .sr-kicker,.has-background .sr-header .sr-subtitle,.has-background .sr-footer{color:var(--slide-text)}.has-background .block-text>.sr-caption,.has-background .block-figure>.sr-caption{color:var(--slide-text)}
     .block-callout,.block-metric{color:var(--ink)}.has-background .block-callout,.has-background .block-metric,.has-background.layout-cards .sr-block,.has-background .block-table{color:var(--ink)}.has-background.layout-title .block-callout{background:var(--wash);color:var(--ink);border-left-color:var(--accent)}.has-background.layout-title .block-callout .sr-heading{color:var(--deep)}.has-background.layout-title .block-callout .sr-caption{color:var(--muted)}.has-background .block-table{background:var(--surface);padding:18px 22px;border-radius:9px}
