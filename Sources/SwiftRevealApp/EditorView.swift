@@ -18,6 +18,7 @@ struct EditorView: View {
     @State private var showDeckSettings = false
     @State private var showStyleEditor = false
     @State private var showDiagnostics = false
+    @State private var showOptimization = false
 
     private var slideIndex: Int {
         document.deck.slides.firstIndex { $0.id == selectedSlideID } ?? 0
@@ -66,6 +67,9 @@ struct EditorView: View {
             Button("OK") { errorMessage = nil }
         } message: { Text(errorMessage ?? "") }
         .sheet(isPresented: $showDeckSettings) { deckSettings }
+        .sheet(isPresented: $showOptimization) {
+            OptimizePresentationView(deck: $document.deck, apply: applyOptimization)
+        }
         .sheet(isPresented: $showDiagnostics) { InteractionDiagnosticsView() }
         .sheet(isPresented: $showStyleEditor) { DeckStyleEditor(deck: $document.deck) }
         .disabled(exporting)
@@ -172,14 +176,19 @@ struct EditorView: View {
             Button { showDeckSettings = true } label: { Label("Deck settings", systemImage: "paintpalette") }.help("Presentation title, theme and footer")
         }
         ToolbarItemGroup(placement: .primaryAction) {
+            Button { showOptimization = true } label: { Label("Optimize", systemImage: "arrow.down.right.and.arrow.up.left") }
+                .help("Reduce image sizes and inspect compressed document savings")
             Button { showDiagnostics = true } label: { Label("Diagnostics", systemImage: "stethoscope") }
                 .help("Inspect app, menu and window state")
             Button { showStyleEditor = true } label: { Label("CSS & themes", systemImage: "curlybraces") }.help("Edit deck CSS and save a reusable theme")
             Button { PresentationController.shared.present(deck: document.deck, startIndex: slideIndex) } label: { Label("Present", systemImage: "play.fill") }
-            Menu {
-                Button("Export PDF…") { exportPDF() }
-                Button("Export HTML…") { exportHTML() }
-            } label: { Label("Export", systemImage: "square.and.arrow.up") }
+            InsertionPicker(title: "Export", symbol: "square.and.arrow.up", choices: ExportFormat.allCases, label: { $0.rawValue }) { format in
+                switch format {
+                case .pdf: exportPDF()
+                case .html: exportHTML()
+                case .json: exportEditableJSON()
+                }
+            }
         }
     }
 
@@ -195,6 +204,24 @@ struct EditorView: View {
             Text("Theme changes apply to every slide. Your content and layout choices are preserved.").font(.caption).foregroundStyle(.secondary)
             HStack { Spacer(); Button("Done") { showDeckSettings = false }.keyboardShortcut(.defaultAction) }
         }.padding(24).frame(width: 460)
+    }
+
+    private enum ExportFormat: String, CaseIterable {
+        case pdf = "PDF…", html = "HTML…", json = "Editable JSON…"
+    }
+
+    private func applyOptimization(_ optimized: Deck) {
+        var updated = document
+        updated.deck = optimized
+        updated.storageRevision &+= 1
+        document = updated
+        undoManager?.setActionName("Optimize presentation")
+    }
+
+    private func exportEditableJSON() {
+        guard let url = destination(extension: "swiftreveal", type: .swiftReveal) else { return }
+        do { try document.deck.encoded().write(to: url, options: .atomic) }
+        catch { errorMessage = "JSON export failed: \(error.localizedDescription)" }
     }
 
     private func selectSlide(_ id: UUID) {

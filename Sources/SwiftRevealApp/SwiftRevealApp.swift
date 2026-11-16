@@ -3,19 +3,21 @@ import UniformTypeIdentifiers
 import SwiftRevealCore
 
 extension UTType {
-    static let swiftReveal = UTType(exportedAs: "org.swiftreveal.presentation", conformingTo: .json)
+    static let swiftReveal = UTType(exportedAs: "org.swiftreveal.presentation", conformingTo: .data)
 }
 
 struct PresentationDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.swiftReveal] }
     var deck: Deck
+    // Explicit Optimize marks a document dirty even when only lossless storage changes.
+    var storageRevision = 0
     init(deck: Deck = .blank) { self.deck = deck }
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else { throw CocoaError(.fileReadCorruptFile) }
-        deck = try Deck.decode(data)
+        deck = try PresentationFile.decode(data)
     }
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: try deck.encoded())
+        FileWrapper(regularFileWithContents: try PresentationFile.encode(deck))
     }
 }
 

@@ -1,5 +1,15 @@
 # SwiftReveal validation
 
+## 0.8.0 testing build — raster and storage efficiency
+
+The SVG checkpoint was already committed as 388b4fd. Raster imports now use bounded ImageIO decoding with resolution presets and correct EXIF orientation, preserve unchanged JPEG/PNG bytes, retain transparency and bypass SVG. The Optimize panel analyzes a captured deck on a cancellable worker, presents before/after estimates, guards against stale source edits and applies changes through one document-binding update. Opaque PNG conversion is opt-in; the Original preset skips all image changes. Native regression tests include format preservation, dimensions, rotation pixels/metadata, transparency, size/no-upscale policies, image-quality error bounds and complete-deck content/style preservation.
+
+PresentationFile reads old plain JSON and writes a versioned, asset-deduplicated LZFSE container only when it saves at least 5% and 1 KiB. Integrity, version, payload-length, bounded-decompression and independent asset checks are tested. Small decks remain JSON. The FileDocument path uses this storage helper, the presentation UTI conforms to public.data, and Editable JSON export provides an older-version/source-inspection copy. A storage revision marks explicit lossless optimization dirty even if image bytes remain identical. Export and clipboard model formats are otherwise unchanged.
+
+All 108 Swift tests across 17 suites and four packaging tests pass. Generated image tests measured 995,880→329,325 bytes for optional photo-like PNG conversion and 382,284→269,675 bytes for JPEG recompression. The included Getting Started generation measured 168,620→46,571 bytes (72.4%) using lossless storage alone; decoding preserved the entire deck. A unique high-entropy asset fixture saved about 24%, and repeated-image fixtures saved over 80%. These are fixture measurements rather than universal compression ratios.
+
+The rebuilt Apple silicon app passes strict ad-hoc signature verification. Native multiwindow/save-panel/autosave, optimization Apply/Undo and exported visual-quality checks remain user acceptance items because GUI inspection is restricted in this session. Examples include an efficient file for testing native opening. No release, tag, push or Homebrew update is included.
+
 ## 0.7.0 testing build — SVG figures and backgrounds
 
 SVG import is enabled for figure and background pickers. A shared static-SVG validator regenerates safe, self-contained XML while retaining paths, text, local styles, gradients, clipping, masks, filters, internal references and embedded PNG/JPEG content. Known external-only W3C SVG DTDs are removed without resolution; scripts, external resources, entity declarations and unsupported active/style constructs are rejected. SVG is revalidated at the rendering boundary for manually edited documents and embedded as an isolated image data URL.

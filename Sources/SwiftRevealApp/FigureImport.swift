@@ -7,11 +7,12 @@ struct ImportedImageAsset {
     let mime: String
 }
 
-/// Preserve validated SVG; normalize other selected media to embedded PNG.
+/// Preserve SVG/JPEG/PNG where possible, downsample new raster imports, and
+/// normalize PDF/other raster content without discarding transparency.
 enum FigureImport {
     static let maximumBytes = 20 * 1_024 * 1_024
 
-    static func load(from url: URL) throws -> ImportedImageAsset {
+    static func load(from url: URL, options: RasterImageOptimizer.Options = .init()) throws -> ImportedImageAsset {
         let scoped = url.startAccessingSecurityScopedResource()
         defer { if scoped { url.stopAccessingSecurityScopedResource() } }
         let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
@@ -22,10 +23,15 @@ enum FigureImport {
         if url.pathExtension.lowercased() == "svg" {
             return ImportedImageAsset(data: try SVGImage.sanitize(data), mime: "image/svg+xml")
         }
+        let isPDF = url.pathExtension.lowercased() == "pdf"
+        if !isPDF {
+            let optimized = try RasterImageOptimizer.optimize(data: data, mime: "", options: options)
+            guard optimized.data.count <= maximumBytes else { throw ImportError.tooLarge }
+            return ImportedImageAsset(data: optimized.data, mime: optimized.mime)
+        }
         guard let image = NSImage(data: data), image.isValid,
               image.size.width > 0, image.size.height > 0 else { throw ImportError.invalidImage }
 
-        let isPDF = url.pathExtension.lowercased() == "pdf"
         let representationWidth = image.representations.map(\.pixelsWide).max() ?? 0
         let representationHeight = image.representations.map(\.pixelsHigh).max() ?? 0
         let sourceWidth = isPDF ? image.size.width * 2 : CGFloat(max(representationWidth, Int(image.size.width)))
@@ -45,7 +51,8 @@ enum FigureImport {
         NSGraphicsContext.restoreGraphicsState()
         guard let png = bitmap.representation(using: .png, properties: [:]) else { throw ImportError.invalidImage }
         guard png.count <= maximumBytes else { throw ImportError.tooLarge }
-        return ImportedImageAsset(data: png, mime: "image/png")
+        let optimized = try RasterImageOptimizer.optimize(data: png, mime: "image/png", options: options)
+        return ImportedImageAsset(data: optimized.data, mime: optimized.mime)
     }
 
     enum ImportError: LocalizedError {

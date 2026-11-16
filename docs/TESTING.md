@@ -111,3 +111,18 @@ Obtain user acceptance after the implementation commit before deploying a releas
 - [ ] Confirm existing PNG/JPEG/TIFF/PDF imports continue to work.
 
 This testing build is not a new public release until separately authorized.
+
+## Raster and storage efficiency (0.8 testing)
+
+- [ ] Open legacy JSON examples and Examples/Efficient-Storage.swiftreveal; save/reopen and compare content, SVGs, colours, notes, fonts and slide order.
+- [ ] Import JPEG, transparent PNG and chart PNG under Balanced/High quality/Compact/Original. Check dimensions, rotation, transparency and text sharpness.
+- [ ] Confirm below-limit JPEG/PNG imports retain their formats; SVG is unchanged.
+- [ ] Use Optimize; compare displayed sizes and presets. Optional PNG-to-JPEG must be off by default and inappropriate for sharp charts.
+- [ ] Analyze/cancel without changes; change settings and analyze again. Apply and Undo/Redo the image changes as a unit.
+- [ ] Use Original for lossless file-size reduction only, then save and confirm the new on-disk size.
+- [ ] Check repeated figure/background images share one stored asset and still edit independently after copying slides.
+- [ ] Export Editable JSON and open the copy with a compatible older version. Confirm regular Save can use the efficient container.
+- [ ] Export HTML/PDF after optimization; inspect image quality and SVG rendering.
+- [ ] Open truncated/corrupt efficient files: show a readable error and do not replace a good file.
+
+No release, push or Homebrew update is included in the 0.8 testing build.

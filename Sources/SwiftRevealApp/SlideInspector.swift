@@ -9,6 +9,7 @@ struct SlideInspector: View {
     @Binding var selectedBlockID: UUID?
     var theme: DeckTheme = .azure
     @State private var backgroundError: String?
+    @State private var backgroundImportPreset: RasterImageOptimizer.Preset = .balanced
 
     private var selectedBlock: Binding<ContentBlock>? {
         guard let id = selectedBlockID,
@@ -130,6 +131,7 @@ struct SlideInspector: View {
 
     private var backgroundControls: some View {
         inspectorSection("SLIDE BACKGROUND") {
+            ImageImportOptionsControl(preset: $backgroundImportPreset)
             if let background = slide.background {
                 ImportedImagePreview(data: background.imageData, mime: background.imageMIME)
                     .frame(maxWidth: .infinity).frame(height: 110)
@@ -196,7 +198,7 @@ struct SlideInspector: View {
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let image = try FigureImport.load(from: url)
+                let image = try FigureImport.load(from: url, options: .init(preset: backgroundImportPreset))
                 if var background = slide.background {
                     background.imageData = image.data; background.imageMIME = image.mime; slide.background = background
                 } else { slide.background = SlideBackground(imageData: image.data, imageMIME: image.mime) }
@@ -290,6 +292,7 @@ private struct BlockContentEditor: View {
     let layout: SlideLayout
     let backgroundTextColor: String?
     @State private var importError: String?
+    @State private var figureImportPreset: RasterImageOptimizer.Preset = .balanced
     // Keep the editing buffer separate from parsed TSV. Otherwise pressing Return
     // at the end of a table would be undone immediately by whitespace normalization.
     @State private var tableDraft: String
@@ -410,6 +413,7 @@ private struct BlockContentEditor: View {
 
     private var figureControls: some View {
         VStack(alignment: .leading, spacing: 10) {
+            ImageImportOptionsControl(preset: $figureImportPreset)
             if let data = block.imageData {
                 ImportedImagePreview(data: data, mime: block.imageMIME)
                     .frame(maxWidth: .infinity).frame(height: 150)
@@ -435,7 +439,7 @@ private struct BlockContentEditor: View {
                 Text("Fit entire figure").tag(true)
                 Text("Fill and crop").tag(false)
             }
-            Text("SVG, PNG, JPEG, TIFF or PDF, up to 20 MB. SVG stays vector. Other formats become PNG; the first PDF page is used and large raster images are reduced to 4,096 pixels.")
+            Text("SVG, PNG, JPEG, TIFF or PDF, up to 20 MB. SVG stays vector; JPEG/PNG retain their format. TIFF and the first PDF page become PNG. Import quality applies to the next chosen image.")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -478,7 +482,7 @@ private struct BlockContentEditor: View {
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             do {
-                let imported = try FigureImport.load(from: url)
+                let imported = try FigureImport.load(from: url, options: .init(preset: figureImportPreset))
                 block.imageData = imported.data
                 block.imageMIME = imported.mime
             } catch {

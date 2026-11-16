@@ -10,6 +10,7 @@ A native macOS editor for structured slide presentations. Edit content and selec
 - Markdown, safe HTML and fenced code blocks with syntax highlighting and preserved indentation.
 - Nine themes, per-block/table colours, slide background images, a deck CSS editor and reusable custom themes.
 - Independent slide/block font scaling and horizontal/vertical title-slide centring.
+- Efficient raster imports, an Optimize panel with quality/resolution controls, and lossless compressed saves with image deduplication.
 - Live previews and navigator thumbnails, speaker notes, presentation mode, and self-contained reveal.js HTML/PDF export.
 
 ## Install
@@ -37,9 +38,25 @@ See [distribution instructions](docs/DISTRIBUTION.md) for publishing releases an
 
 ## Run a local build
 
-Open `dist/SwiftReveal.app`, then choose **New Document** (or **File → New**). New documents start with a single title slide and no content blocks. An editable tutorial deck remains available in `Examples/Getting-Started.swiftreveal`. Save your own copy with **File → Save** (`⌘S`). The app uses `.swiftreveal` files, portable JSON containing the presentation and embedded figures. The example chart and values are illustrative, not real-world data.
+Open `dist/SwiftReveal.app`, then choose **New Document** (or **File → New**). New documents start with a single title slide and no content blocks. An editable tutorial deck remains available in `Examples/Getting-Started.swiftreveal`. Save your own copy with **File → Save** (`⌘S`). The app uses `.swiftreveal` files containing the presentation and embedded figures. Version 0.8 reads legacy JSON and can save a smaller, versioned binary container with deduplicated images and lossless LZFSE compression. Small decks remain plain JSON when a container would not save at least 5% and 1 KiB. The example chart and values are illustrative, not real-world data.
 
 Release ZIPs are provided for both Apple silicon and Intel Macs. The local build script defaults to the architecture of the build machine; use `SWIFTREVEAL_ARCH=arm64` or `SWIFTREVEAL_ARCH=x86_64` to select one explicitly.
+
+## Image efficiency and document size
+
+Figure and background pickers have **Import quality** controls. **Balanced** limits the longest edge to 2560 pixels; **High quality** uses 4096 and **Compact** uses 1920. **Original pixels and format** retains JPEG/PNG source bytes. Images are never enlarged. JPEG/PNG images already within the chosen limit keep their original bytes by default. New JPEG imports stay JPEG; transparent PNGs remain PNG. TIFF/PDF conversion remains available, and SVG stays vector.
+
+Use **Optimize** in the toolbar for existing presentations. The panel shows legacy JSON size, the estimated next-save size with unchanged images, and the estimated size after image optimization. Analyze different presets before applying. JPEG recompression is available at 85% quality for Balanced, 92% for High quality or 75% for Compact. **Compress opaque PNG as JPEG** is opt-in and best suited to photos; leave it off for plots, screenshots and line art. Transparent resized output remains PNG. **Original** performs no image changes and lets you benefit from lossless document storage alone.
+
+Apply updates the document in one edit, with Undo support. Save with **⌘S** to write it. The optimizer works on each unique raster image once, preserves slide styles/metadata and leaves SVG or unsupported image formats unchanged. Import and optional compression avoid increasing image size unless a resolution limit or format conversion requires it.
+
+Efficient saving stores identical image bytes once across figures and backgrounds. The storage envelope is losslessly compressed only when worthwhile, includes integrity checks, and is decoded with bounded sizes (512 MiB file/decompressed-envelope limits). Image optimization reduces the media itself; document compression/deduplication reduces `.swiftreveal` storage without changing image quality. HTML/PDF exports use the current in-memory images.
+
+**Compatibility:** older presentations still open. Efficient containers require SwiftReveal 0.8 or later. Use **Export → Editable JSON…** for a conventional `.swiftreveal` JSON copy when sharing with older versions or inspecting the source. Saving does not recompress raster pixels repeatedly; JPEG/PNG quality changes happen during import or explicit optimization.
+
+Measured on the included Getting Started example, lossless storage reduced 168,620 to 46,577 bytes (72.4%), with identical restored image data. A generated photo-like PNG fixture shrank from 995,880 to 329,325 bytes (66.9%) with optional JPEG conversion; a generated existing JPEG shrank from 382,284 to 269,675 bytes (29.5%). These are illustrative measurements, not guaranteed savings for every deck.
+
+Open `Examples/Efficient-Storage.swiftreveal` to test compressed/deduplicated document reading. The original JSON example remains available. The developer utility can measure a file with `SwiftRevealTool measure-storage /absolute/presentation.swiftreveal`.
 
 ## Multiple windows and copying slides
 
@@ -126,7 +143,7 @@ Give the result a name and choose **Save as new theme**. It appears under **Appl
 
 ### Figures
 
-Select a figure block and import SVG, PNG, JPEG, TIFF or PDF, up to 20 MB. The first page of a PDF is used. Raster/PDF imports are normalized to an embedded PNG with a maximum edge of 4096 pixels. SVG imports retain static vector artwork and are not converted to PNG. Choose **Fit** to retain the whole figure, or crop to fill its frame. Add a caption/source below.
+Select a figure block and import SVG, PNG, JPEG, TIFF or PDF, up to 20 MB. The first page of a PDF is used. JPEG/PNG imports keep their format and use the selected import-resolution preset; TIFF/PDF imports are converted to PNG. SVG imports retain static vector artwork and are not converted to PNG. Choose **Fit** to retain the whole figure, or crop to fill its frame. Add a caption/source below.
 
 SVGs can also be chosen for slide backgrounds using the same fit/crop and overlay controls. Inspector previews, navigator thumbnails, offline HTML and PDF capture use the validated embedded image. Saving, duplication and slide copy/paste retain its vector bytes and MIME type.
 

@@ -46,6 +46,13 @@ import SwiftRevealCore
             let encoded = try deck.encoded()
             try encoded.write(to: output.appendingPathComponent("Sample.swiftreveal"), options: .atomic)
             record("Sample document round trip", try Deck.decode(encoded) == deck)
+            let efficient = try PresentationFile.encodeWithStatistics(deck)
+            try efficient.data.write(to: output.appendingPathComponent("Sample-Efficient.swiftreveal"), options: .atomic)
+            record("Efficient document round trip", try PresentationFile.decode(efficient.data) == deck)
+            record("Legacy JSON still opens", try PresentationFile.decode(encoded) == deck)
+            record("Sample document storage is smaller", efficient.data.count < encoded.count,
+                   "\(encoded.count) → \(efficient.data.count) bytes")
+
             let html = HTMLRenderer.export(deck: deck)
             try html.write(to: output.appendingPathComponent("Sample.html"), atomically: true, encoding: .utf8)
             record("Offline reveal.js embedded", html.contains("new Reveal(") && html.contains("class=\"reveal\""))

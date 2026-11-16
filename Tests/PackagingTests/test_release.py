@@ -33,6 +33,13 @@ class ReleaseTests(unittest.TestCase):
             self.assertIn('#{arch}', cask)
             self.assertNotIn('postflight', cask)  # Do not silently disable quarantine.
 
+    def test_presentation_type_allows_compressed_data_while_clipboard_stays_json(self):
+        info = plistlib.loads((ROOT / 'packaging/Info.plist').read_bytes())
+        types = {item['UTTypeIdentifier']: item for item in info['UTExportedTypeDeclarations']}
+        self.assertIn('public.data', types['org.swiftreveal.presentation']['UTTypeConformsTo'])
+        self.assertNotIn('public.json', types['org.swiftreveal.presentation']['UTTypeConformsTo'])
+        self.assertIn('public.json', types['org.swiftreveal.slides']['UTTypeConformsTo'])
+
     def test_icon_is_wired_into_bundle_and_has_small_and_retina_sizes(self):
         info = plistlib.loads((ROOT / 'packaging/Info.plist').read_bytes())
         self.assertEqual(info['CFBundleIconFile'], 'AppIcon')

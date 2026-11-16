@@ -9,6 +9,7 @@ let package = Package(
         .target(name: "SwiftRevealCore", resources: [.copy("Resources")]),
         .executableTarget(name: "SwiftRevealApp", dependencies: ["SwiftRevealCore"]),
         .executableTarget(name: "SwiftRevealTool", dependencies: ["SwiftRevealCore"]),
-        .testTarget(name: "SwiftRevealCoreTests", dependencies: ["SwiftRevealCore"])
+        .testTarget(name: "SwiftRevealCoreTests", dependencies: ["SwiftRevealCore"]),
+        .testTarget(name: "RasterEfficiencyTests", dependencies: ["SwiftRevealApp"])
     ]
 )
