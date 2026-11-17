@@ -2,6 +2,8 @@
 
 A native macOS editor for structured slide presentations. Edit content and select a layout; consistent rules handle margins, alignment, spacing and typography.
 
+Prefer a browser-based editor? [PoWAReveal](https://github.com/t0mrg/PoWAReveal) is the offline-capable web companion and opens the same `.swiftreveal` presentations. [Launch PoWAReveal](https://t0mrg.github.io/PoWAReveal/) without installing anything. Browser storage is local to your device; download an editable copy for permanent use.
+
 ## Features
 
 - Eight structured layouts with automatic margins, alignment and spacing, plus deck-wide 16:9 or 6:4 aspect ratios.
