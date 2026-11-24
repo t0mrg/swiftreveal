@@ -12,7 +12,7 @@ PowerPoint has a different text/layout engine. Export uses measured positions an
 
 ## Testing
 
-The Apple silicon testing build is **0.10.0 (15)** on `feature/powerpoint-export`. It is ad-hoc signed, not notarized, and is not a GitHub release or Homebrew update.
+PowerPoint export is included in **0.10.0 (15)**. The app is ad-hoc signed and is not notarized. Releases include Apple silicon and Intel builds plus the Homebrew cask.
 
 1. Quit any other SwiftReveal instance, then run `open dist/SwiftReveal.app` from this repository.
 2. Open your own deck or `dist/PowerPoint-Testing/PowerPoint-Checks.swiftreveal`.
