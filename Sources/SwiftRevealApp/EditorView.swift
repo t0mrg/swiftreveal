@@ -185,6 +185,7 @@ struct EditorView: View {
             InsertionPicker(title: "Export", symbol: "square.and.arrow.up", choices: ExportFormat.allCases, label: { $0.rawValue }) { format in
                 switch format {
                 case .pdf: exportPDF()
+                case .powerPoint: exportPowerPoint()
                 case .html: exportHTML()
                 case .json: exportEditableJSON()
                 }
@@ -213,7 +214,7 @@ struct EditorView: View {
     }
 
     private enum ExportFormat: String, CaseIterable {
-        case pdf = "PDF…", html = "HTML…", json = "Editable JSON…"
+        case pdf = "PDF…", powerPoint = "PowerPoint…", html = "HTML…", json = "Editable JSON…"
     }
 
     private func applyOptimization(_ optimized: Deck) {
@@ -347,6 +348,29 @@ struct EditorView: View {
             defer { exporting = false }
             do { try await PDFExporter().export(deck: deck, to: url) }
             catch { errorMessage = "PDF export failed: \(error.localizedDescription)" }
+        }
+    }
+    private func exportPowerPoint() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType(filenameExtension: "pptx") ?? .data]
+        panel.nameFieldStringValue = (document.deck.title.isEmpty ? "Presentation" : document.deck.title.replacingOccurrences(of: "/", with: "-")) + ".pptx"
+        panel.canCreateDirectories = true
+        panel.message = "Exports editable text, tables and shapes, with reusable layouts. Mermaid exports as SVG. Fonts are not embedded; the receiving computer needs the same fonts (Helvetica Neue by default). Custom CSS may differ."
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        exporting = true
+        let deck = document.deck
+        Task { @MainActor in
+            defer { exporting = false }
+            do {
+                let warnings = try await PowerPointExporter().export(deck: deck, to: url)
+                if !warnings.isEmpty {
+                    let alert = NSAlert()
+                    alert.messageText = "PowerPoint exported with layout warnings"
+                    alert.informativeText = warnings.joined(separator: "\n")
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
+            } catch { errorMessage = "PowerPoint export failed: \(error.localizedDescription)" }
         }
     }
 }

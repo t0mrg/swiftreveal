@@ -24,7 +24,7 @@ struct PresentationDocument: FileDocument {
 @main
 struct SwiftRevealApp: App {
     init() {
-        if CommandLine.arguments.contains("--smoke-test") {
+        if CommandLine.arguments.contains("--smoke-test") || CommandLine.arguments.contains("--powerpoint-test") {
             DispatchQueue.main.async { Task { @MainActor in _ = await SmokeCheck.runIfRequested() } }
         }
     }
@@ -50,7 +50,7 @@ enum GuideWindow {
     static func show() {
         let alert = NSAlert()
         alert.messageText = "SwiftReveal · Structured slides"
-        alert.informativeText = "Choose a slide on the left, then edit its content on the right. Click a block in the preview to select it.\n\nLayouts control alignment and spacing. Change layouts without losing content. Use the column split and density controls to adjust composition. If a slide is too full, shorten the content or move a block to a new slide.\n\nFigures are embedded in your document. For tables, paste tab-separated cells with a header row.\n\n⌘S saves your editable .swiftreveal document. Export produces a separate PDF or offline HTML presentation. In presentation mode, use arrow keys to navigate, S for notes and Esc to leave full screen.\n\nThis is a local testing build. PowerPoint import/export and arbitrary HTML import are not supported."
+        alert.informativeText = "Choose a slide on the left, then edit its content on the right. Click a block in the preview to select it.\n\nLayouts control alignment and spacing. Change layouts without losing content. Use the column split and density controls to adjust composition. If a slide is too full, shorten the content or move a block to a new slide.\n\nFigures are embedded in your document. For tables, paste tab-separated cells with a header row.\n\n⌘S saves your editable .swiftreveal document. Export produces a separate PDF, editable PowerPoint, or offline HTML presentation. In presentation mode, use arrow keys to navigate, S for notes and Esc to leave full screen.\n\nPowerPoint export includes native text, shapes and tables plus reusable layouts. Mermaid diagrams export as SVG pictures. Fonts are not embedded; custom CSS may differ. PowerPoint import and arbitrary HTML import are not supported."
         alert.addButton(withTitle: "Got it")
         alert.runModal()
     }

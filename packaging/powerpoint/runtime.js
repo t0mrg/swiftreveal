@@ -50,7 +50,7 @@ async function capture() {
   await window.swiftRevealReady;
   const root=document.querySelector('article.sr-slide'),origin=root.getBoundingClientRect();
   const rect=n=>{const r=n.getBoundingClientRect();return {x:r.left-origin.left,y:r.top-origin.top,w:r.width,h:r.height};};
-  const objects=[],warnings=[...(window.swiftRevealReport?.().warnings||[])];
+  const objects=[],placeholders=[],warnings=[...(window.swiftRevealReport?.().warnings||[])];
   const visible=n=>{const s=getComputedStyle(n),r=rect(n);return s.display!=='none'&&s.visibility!=='hidden'&&num(s.opacity)>0&&r.w>0&&r.h>0;};
   function shape(n,name) {
     if(!visible(n))return;
@@ -83,27 +83,37 @@ async function capture() {
     objects.push({kind:'image',rect:rect(bg),data:bg.src,fit:getComputedStyle(bg).objectFit,naturalW:bg.naturalWidth,naturalH:bg.naturalHeight,name:'Background image'});
     shape(root.querySelector('.sr-background-overlay'),'Translucent background overlay');
   }
-  root.querySelectorAll('.sr-kicker,h1,.sr-subtitle').forEach(n=>text(n,n.matches('h1')?'title':n.matches('.sr-subtitle')?'subtitle':'kicker'));
+  function placeholder(n,role,type='body',region=null,extra={}){
+    if(!n||!visible(n))return;
+    const s=getComputedStyle(n);placeholders.push({role,type,rect:region||rect(n),options:{...textStyle(n),align:s.textAlign==='center'?'center':'left',margin:0,valign:'top',lineSpacing:pt(num(s.lineHeight)),...extra}});
+  }
+  root.querySelectorAll('.sr-kicker,h1,.sr-subtitle').forEach(n=>{const role=n.matches('h1')?'title':n.matches('.sr-subtitle')?'subtitle':'kicker';text(n,role);placeholder(n,role,role==='title'?'title':'body');});
   for(const block of root.querySelectorAll('[data-block-id]')){
     if(!visible(block))continue;
     shape(block,'Block panel');
-    const heading=block.querySelector('.sr-heading');if(heading)text(heading,'heading');
-    const copy=block.querySelector('.sr-copy');if(copy)paragraphs(copy);
+    const heading=block.querySelector('.sr-heading');if(heading){text(heading,'heading');placeholder(heading,'heading');}
+    const copy=block.querySelector('.sr-copy');if(copy){
+      paragraphs(copy);const r=rect(copy),b=rect(block),s=getComputedStyle(block),caption=block.querySelector('.sr-caption');
+      r.h=Math.max(r.h,(caption?rect(caption).y-12:b.y+b.h-num(s.paddingBottom))-r.y);
+      if(s.justifyContent==='center'){r.y=b.y+num(s.paddingTop);r.h=b.h-num(s.paddingTop)-num(s.paddingBottom);}
+      placeholder(copy,'body','body',r,s.justifyContent==='center'?{valign:'mid'}:{});
+    }
+    placeholder(block.querySelector('.sr-image-area'),'picture','pic');
     const img=block.querySelector('.sr-image-area img');
     if(img){if(!img.naturalWidth)throw new Error('A figure image could not be decoded.');objects.push({kind:'image',rect:rect(img),data:img.src,fit:getComputedStyle(img).objectFit,naturalW:img.naturalWidth,naturalH:img.naturalHeight,name:'Figure'});}
-    const placeholder=block.querySelector('.sr-placeholder');if(placeholder){shape(placeholder,'Figure placeholder');paragraphs(placeholder,'picture');}
+    const emptyFigure=block.querySelector('.sr-placeholder');if(emptyFigure){shape(emptyFigure,'Figure placeholder');Array.from(emptyFigure.children).forEach(n=>text(n,'picture'));}
     const svg=block.querySelector('.sr-mermaid svg');if(svg){const v=svg.viewBox.baseVal;objects.push({kind:'image',name:'Mermaid SVG diagram',rect:rect(svg),data:styledSVG(svg),fit:'contain',naturalW:v.width,naturalH:v.height});}
     const table=block.querySelector('table');
-    if(table){const rows=Array.from(table.rows);objects.push({kind:'table',rect:rect(table),colW:Array.from(rows[0]?.cells||[]).map(c=>inch(rect(c).w)),rowH:rows.map(r=>inch(rect(r).h)),
+    if(table){placeholder(table,'table','body');const rows=Array.from(table.rows);objects.push({kind:'table',rect:rect(table),colW:Array.from(rows[0]?.cells||[]).map(c=>inch(rect(c).w)),rowH:rows.map(r=>inch(rect(r).h)),
       rows:rows.map(row=>Array.from(row.cells).map(cell=>{const s=getComputedStyle(cell),bg=rgba(s.backgroundColor),rowBG=rgba(getComputedStyle(row).backgroundColor);return {text:richRuns(cell),options:{...textStyle(cell),align:s.textAlign,valign:'top',
         margin:[s.paddingTop,s.paddingRight,s.paddingBottom,s.paddingLeft].map(v=>pt(num(v))),fill:bg.transparency<100?bg:rowBG,
         border:[{type:'solid',color:'FFFFFF',pt:0},{type:'solid',color:'FFFFFF',pt:0},{type:'solid',color:rgba(s.borderBottomColor).color,pt:pt(num(s.borderBottomWidth))},{type:'solid',color:'FFFFFF',pt:0}]}};}))});}
-    const caption=block.querySelector('.sr-caption');if(caption)text(caption,'caption');
+    const caption=block.querySelector('.sr-caption');if(caption){text(caption,'caption');placeholder(caption,'caption');}
   }
   root.querySelectorAll('.sr-footer span').forEach(n=>text(n,'footer'));
   const bad=document.querySelector('[data-image-warning]');if(bad)throw new Error(bad.dataset.imageWarning);
   if(Array.from(root.querySelectorAll('*')).some(n=>{const s=getComputedStyle(n);return !n.closest('svg')&&(s.transform!=='none'||s.filter!=='none'||s.boxShadow!=='none'||s.textShadow!=='none');}))warnings.push('CSS transforms, filters and shadows may differ in PowerPoint.');
-  return JSON.stringify({objects,warnings,width:origin.width,height:origin.height});
+  return JSON.stringify({objects,placeholders,warnings,width:origin.width,height:origin.height});
 }
 function shapeDefs(o){
   const fill={...o.fill,transparency:100-(100-o.fill.transparency)*(o.opacity??1)},r=box(o.rect),edge=o.borders?.[0];
@@ -114,7 +124,7 @@ function shapeDefs(o){
 }
 function imageOptions(ppt,o){
   const r=box(o.rect),ratio=o.naturalW/o.naturalH;let dims;
-  if(o.fit==='cover')dims=ppt.imageSizingCrop(o.data,r.x,r.y,r.w,r.h);
+  if(o.fit==='cover')dims={x:r.x,y:r.y,w:inch(o.naturalW),h:inch(o.naturalH),sizing:{type:'cover',w:r.w,h:r.h}};
   else if(o.fit==='fill')dims=r;
   else{const w=Math.min(r.w,r.h*ratio),h=w/ratio;dims={x:r.x+(r.w-w)/2,y:r.y+(r.h-h)/2,w,h};}
   return {data:o.data,...dims,objectName:o.name,altText:o.name};
@@ -132,13 +142,14 @@ async function write(payloadJSON){
   const names=new Map();
   for(const master of payload.masters){
     const name=`SwiftReveal · ${master.label}`;names.set(master.layout,name);const objects=[];
-    for(const o of master.snapshot.objects){
-      if(o.kind==='text'){const i=objects.length;objects.push({placeholder:{text:o.role==='title'?'Click to add title':o.role==='footer'?payload.footer:'Click to add '+o.role,options:{...o.options,...box(o.rect),name:`${master.layout}-${o.role}-${i}`,type:o.role==='title'?'title':'body'}}});}
-      else if(o.kind==='image')objects.push({placeholder:{text:'Click to add picture',options:{...box(o.rect),name:master.layout+'-picture',type:'pic'}}});
-      else if(o.kind==='table')objects.push({placeholder:{text:'Click to add table',options:{...box(o.rect),name:master.layout+'-table',type:'body',fontSize:16}}});
-      else shapeDefs(o).forEach(d=>objects.push({rect:d}));
-    }
-    ppt.defineSlideMaster({title:name,background:{color:'FFFFFF'},objects});
+    for(const o of master.snapshot.objects)if(o.kind==='shape')shapeDefs(o).forEach(d=>objects.push({rect:d}));
+    for(const [i,o] of master.snapshot.placeholders.entries())objects.push({placeholder:{text:'Click to add '+o.role,
+      options:{...o.options,...box(o.rect),objectName:`SwiftReveal ${o.role} ${i+1}`,name:`${master.layout}-${o.role}-${i}`,type:o.type}}});
+    const footers=master.snapshot.objects.filter(o=>o.kind==='text'&&o.role==='footer');
+    const footer=footers.find(o=>!/^\d+ \/ \d+$/.test(o.runs.map(r=>r.text).join('')));
+    if(footer)objects.push({text:{text:payload.footer,options:{...footer.options,...box(footer.rect)}}});
+    const number=footers.find(o=>/^\d+ \/ \d+$/.test(o.runs.map(r=>r.text).join('')));
+    ppt.defineSlideMaster({title:name,background:{color:'FFFFFF'},objects,...(number?{slideNumber:{...number.options,...box(number.rect),align:'right'}}:{})});
   }
   for(const entry of payload.slides){const slide=ppt.addSlide({masterName:names.get(entry.layout)});entry.snapshot.objects.forEach(o=>addObject(slide,ppt,o));if(entry.notes)slide.addNotes(entry.notes);}
   const raw=await ppt.write({outputType:'base64',compression:true}),zip=await JSZip.loadAsync(raw,{base64:true});
@@ -154,6 +165,12 @@ async function write(payloadJSON){
         props.insertBefore(doc.importNode(fragment.documentElement,true),Array.from(props.children).find(c=>['ln','effectLst','effectDag','scene3d','sp3d','extLst'].includes(c.localName))||null);
       }
     }
+    // PptxGenJS 4 emits repeated pPr elements for rich runs. OOXML permits one
+    // paragraph-properties node; later copies can suppress a native list marker.
+    Array.from(doc.getElementsByTagNameNS(a,'p')).forEach(p=>{
+      const props=Array.from(p.children).filter(n=>n.localName==='pPr');
+      props.slice(1).forEach(n=>n.remove());
+    });
     return doc;
   }
   for(let i=0;i<payload.slides.length;i++){
@@ -165,7 +182,25 @@ async function write(payloadJSON){
   }
   for(let i=0;i<payload.masters.length;i++){
     const path=`ppt/slideLayouts/slideLayout${i+2}.xml`,file=zip.file(path);
-    if(file)zip.file(path,new XMLSerializer().serializeToString(gradientXML(await file.async('string'),payload.masters[i].snapshot)));
+    if(file){
+      const doc=gradientXML(await file.async('string'),payload.masters[i].snapshot);
+      // The library's placeholder enum omits pic/tbl after a second lookup.
+      // Write explicit OOXML types so Office offers picture insertion, not text.
+      Array.from(doc.getElementsByTagNameNS(ns,'ph')).filter(p=>p.getAttribute('type')!=='sldNum').forEach((ph,j)=>{
+        const region=payload.masters[i].snapshot.placeholders[j];if(region)ph.setAttribute('type',region.role==='table'?'tbl':region.type);
+      });
+      zip.file(path,new XMLSerializer().serializeToString(doc));
+    }
+  }
+  for(const path of Object.keys(zip.files).filter(p=>/^ppt\/theme\/theme\d+\.xml$/.test(p))){
+    const doc=new DOMParser().parseFromString(await zip.file(path).async('string'),'application/xml');
+    const scheme=doc.getElementsByTagNameNS(a,'clrScheme')[0];
+    if(scheme)for(const node of scheme.children){
+      const color=payload.colors?.[node.localName];if(!color)continue;
+      while(node.firstChild)node.firstChild.remove();
+      const rgb=doc.createElementNS(a,'a:srgbClr');rgb.setAttribute('val',color);node.appendChild(rgb);
+    }
+    zip.file(path,new XMLSerializer().serializeToString(doc));
   }
   return zip.generateAsync({type:'base64',compression:'DEFLATE'});
 }
