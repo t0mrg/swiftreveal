@@ -187,7 +187,12 @@ async function write(payloadJSON){
       // The library's placeholder enum omits pic/tbl after a second lookup.
       // Write explicit OOXML types so Office offers picture insertion, not text.
       Array.from(doc.getElementsByTagNameNS(ns,'ph')).filter(p=>p.getAttribute('type')!=='sldNum').forEach((ph,j)=>{
-        const region=payload.masters[i].snapshot.placeholders[j];if(region)ph.setAttribute('type',region.role==='table'?'tbl':region.type);
+        const region=payload.masters[i].snapshot.placeholders[j];
+        if(region){
+          ph.setAttribute('type',region.role==='table'?'obj':region.type);
+          const shape=ph.parentElement?.parentElement?.parentElement,body=shape?.getElementsByTagNameNS(a,'bodyPr')[0];
+          if(body)body.setAttribute('anchor',region.options.valign==='mid'?'ctr':'t');
+        }
       });
       zip.file(path,new XMLSerializer().serializeToString(doc));
     }

@@ -12,4 +12,26 @@ PowerPoint has a different text/layout engine. Export uses measured positions an
 
 ## Testing
 
-Instructions and validation results will be added when the testing build is ready.
+The Apple silicon testing build is **0.10.0 (15)** on `feature/powerpoint-export`. It is ad-hoc signed, not notarized, and is not a GitHub release or Homebrew update.
+
+1. Quit any other SwiftReveal instance, then run `open dist/SwiftReveal.app` from this repository.
+2. Open your own deck or `dist/PowerPoint-Testing/PowerPoint-Checks.swiftreveal`.
+3. Choose **Export → PowerPoint…**. Open the `.pptx` in PowerPoint and edit text, a bullet, a table cell and a coloured panel. Check background image opacity and the SVG diagram.
+4. In PowerPoint, use **Home → New Slide** to choose a named **SwiftReveal** layout. Use **View → Slide Master** to inspect or edit the layouts. The file contains eight named layouts under a shared slide master, which is PowerPoint's normal structure for related designs.
+
+Existing slides retain individually measured objects. Layouts provide templates for adding slides; applying a different layout does not reflow existing objects. New layout placeholders use the theme's default split, density and typography, rather than inheriting a particular slide's overrides. Slide counts on existing slides are exported as text; update them after extending the deck if needed.
+
+Build and repeat automated verification:
+
+```sh
+scripts/test.sh
+scripts/build-app.sh
+dist/SwiftReveal.app/Contents/MacOS/SwiftReveal --powerpoint-test /tmp/SwiftReveal-PowerPoint-QA
+python3 scripts/check-powerpoint.py /tmp/SwiftReveal-PowerPoint-QA
+```
+
+The JavaScript runtime is already vendored; building the app requires no npm install or network access. To rebuild that runtime after changing its source, run `npm ci && npm run build` in `packaging/powerpoint`. The pinned browser dependencies passed npm audit with no advisories at implementation time.
+
+Validation: 113 Swift tests passed. The focused native harness exported both aspect ratios and all eight layouts, including native tables, rich-text bullets, a translucent background and Mermaid. It also verified clear failure on invalid Mermaid and preservation of a destination file on failure. The standard-library Python checker verifies all ZIP parts/relationships, paragraph validity, native objects, placeholder types, fonts/geometry-related structure, overlay alpha, diagram relationships and notes. Independent LibreOffice renders were inspected with the matching system fonts; eight extra slides were created from the exported layouts and rendered. Microsoft PowerPoint itself is not installed on the development machine, so testing in PowerPoint remains necessary, particularly for font substitution and new picture/table insertion.
+
+The broader pre-existing WebKit smoke suite reports three failures on this machine: `SVG intrinsic dimensions 1`, `SVG intrinsic dimensions 2`, and `Presentation JavaScript`. All three were reproduced in an isolated, unchanged `main` checkout (120 checks). They are not introduced by this exporter. The dedicated PowerPoint checks and Swift tests pass.
