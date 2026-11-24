@@ -1,0 +1,15 @@
+{
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild runtime.js --bundle --platform=browser --format=iife --target=safari17 --minify --legal-comments=external --outfile=../../Sources/SwiftRevealCore/Resources/powerpoint-runtime.js"
+  },
+  "dependencies": {
+    "jszip": "3.10.1",
+    "pptxgenjs": "4.0.0"
+  },
+  "overrides": { "image-size": "2.1.0" },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

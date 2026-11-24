@@ -15,7 +15,7 @@ release_root="$(mktemp -d /tmp/swiftreveal-release.XXXXXX)"
 trap 'rm -rf "$release_root"' EXIT
 source_dir="$release_root/source"
 mkdir -p "$source_dir"
-/usr/bin/rsync -a --exclude .git --exclude .build --exclude .swiftpm --exclude dist --exclude .DS_Store "$project_dir/" "$source_dir/"
+/usr/bin/rsync -a --exclude .git --exclude .build --exclude .swiftpm --exclude dist --exclude node_modules --exclude .DS_Store "$project_dir/" "$source_dir/"
 cache_dir="$release_root/module-cache"
 app_dir="$project_dir/dist/SwiftReveal.app"
 mkdir -p "$cache_dir" "$release_root/cache" "$project_dir/dist"

@@ -12,10 +12,20 @@ import SwiftRevealCore
     private static var running = false
 
     static func runIfRequested() async -> Bool {
-        guard !attempted, let flag = CommandLine.arguments.firstIndex(of: "--smoke-test") else { return false }
+        guard !attempted, let flag = CommandLine.arguments.firstIndex(where: { ["--smoke-test", "--powerpoint-test"].contains($0) }) else { return false }
         attempted = true
         let path = CommandLine.arguments.indices.contains(flag + 1)
             ? CommandLine.arguments[flag + 1] : FileManager.default.currentDirectoryPath + "/.build/qa"
+        if CommandLine.arguments[flag] == "--powerpoint-test" {
+            do {
+                let output = URL(fileURLWithPath: path, isDirectory: true)
+                let checks = try await powerPointChecks(output: output)
+                let data = try JSONSerialization.data(withJSONObject: ["passed": true, "checks": checks], options: [.prettyPrinted, .sortedKeys])
+                try data.write(to: output.appendingPathComponent("powerpoint-results.json"), options: .atomic)
+                print("PowerPoint integration checks passed: " + checks.joined(separator: "; "))
+                Darwin.exit(0)
+            } catch { print("PowerPoint integration failed: " + error.localizedDescription); Darwin.exit(1) }
+        }
         return await run(output: URL(fileURLWithPath: path, isDirectory: true), exitWhenFinished: true)
     }
 
@@ -28,6 +38,60 @@ import SwiftRevealCore
         alert.informativeText = "Results and rendered sample slides: " + output.path + "/smoke-results.json"
         alert.addButton(withTitle: "OK")
         alert.runModal()
+    }
+
+    private static func powerPointChecks(output: URL) async throws -> [String] {
+        try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
+        let deck = Deck.sample, formatting = Deck.formattingExamples
+        let browser = SmokeBrowser()
+        defer { browser.close() }
+        var checks: [String] = []
+        func record(_ name: String, _ passed: Bool) {
+            checks.append(passed ? name : "FAILED: " + name)
+        }
+        let pptx = output.appendingPathComponent("Sample.pptx")
+        _ = try await PowerPointExporter().export(deck: deck, to: pptx)
+        record("PowerPoint ZIP generated", try Data(contentsOf: pptx).starts(with: [0x50,0x4b,0x03,0x04]))
+        var exportDeck = Deck(title: "PowerPoint export checks", author: "SwiftReveal", theme: .ocean,
+            slides: SlideLayout.allCases.map(Slide.starter) + [formatting.slides[1]], aspectRatio: .sixByFour)
+        exportDeck.slides[0].notes = "Speaker notes survive PowerPoint export."
+        exportDeck.slides[1].blocks = [ContentBlock(kind: .text, body: "- Bullet with **bold** and <em>italic</em>\n- H<sub>2</sub>O and x<sup>2</sup>")]
+        exportDeck.slides[2].blocks[0].fontScale = 0.8
+        if let image = deck.slides.flatMap(\.blocks).first(where: { $0.imageData != nil }) {
+            exportDeck.slides[2].background = SlideBackground(imageData: image.imageData!, imageMIME: image.imageMIME, overlayColor: "#102036", overlayOpacity: 0.45)
+            exportDeck.slides[3].blocks[0] = image
+        }
+        let allLayouts = output.appendingPathComponent("All-Layouts-Six-by-Four.pptx")
+        _ = try await PowerPointExporter().export(deck: exportDeck, to: allLayouts)
+        try PresentationFile.encode(exportDeck).write(to: output.appendingPathComponent("PowerPoint-Checks.swiftreveal"), options: .atomic)
+        record("PowerPoint all layouts and Mermaid exported", try Data(contentsOf: allLayouts).count > 10000)
+        for index in exportDeck.slides.indices {
+            _ = try await browser.render(HTMLRenderer.powerPointSlide(deck: exportDeck, slideIndex: index), aspectRatio: .sixByFour)
+            let snapshot = try await browser.run("return await window.swiftRevealPowerPoint.capture();")
+            if let json = snapshot as? String {
+                try json.write(to: output.appendingPathComponent("PowerPoint-Slide-\(index + 1).json"), atomically: true, encoding: .utf8)
+            }
+            try await browser.snapshot(to: output.appendingPathComponent("PowerPoint-Slide-\(index + 1).png"))
+        }
+        let protected = output.appendingPathComponent("Failed-Export.pptx")
+        let sentinel = Data("Keep the previous file on failure".utf8)
+        try sentinel.write(to: protected, options: .atomic)
+        do {
+            _ = try await PowerPointExporter().export(deck: Deck(slides: []), to: protected)
+            record("Empty decks are rejected", false)
+        } catch PowerPointExportError.emptyDeck { record("Empty decks are rejected", true) }
+        let invalid = Deck(slides: [Slide(blocks: [ContentBlock(kind: .mermaid, body: "flowchart LR\nA -->")])])
+        do {
+            _ = try await PowerPointExporter().export(deck: invalid, to: protected)
+            record("Invalid Mermaid prevents export", false)
+        } catch {
+            record("Invalid Mermaid prevents export", error.localizedDescription.contains("Cannot export diagram"))
+        }
+        record("Failed exports preserve previous files", try Data(contentsOf: protected) == sentinel)
+        guard !checks.contains(where: { $0.hasPrefix("FAILED:") }) else {
+            throw NSError(domain: "SwiftReveal.PowerPointQA", code: 1, userInfo: [NSLocalizedDescriptionKey: checks.joined(separator: "\n")])
+        }
+        return checks
     }
 
     private static func run(output: URL, exitWhenFinished: Bool) async -> Bool {
@@ -327,6 +391,8 @@ import SwiftRevealCore
             let tallerPage = PDFDocument(url: tallerPDF)?.page(at: 0)
             let tallerBounds = tallerPage?.bounds(for: .mediaBox) ?? .zero
             record("6:4 PDF bounds", abs(tallerBounds.width - 1296) < 0.1 && abs(tallerBounds.height - 864) < 0.1)
+            for name in try await powerPointChecks(output: output) { record(name, true) }
+
         } catch {
             record("Integration harness completed", false, error.localizedDescription)
         }

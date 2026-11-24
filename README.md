@@ -14,6 +14,15 @@ Prefer a browser-based editor? [PoWAReveal](https://github.com/t0mrg/PoWAReveal)
 - Independent slide/block font scaling and horizontal/vertical title-slide centring.
 - Efficient raster imports, an Optimize panel with quality/resolution controls, and lossless compressed saves with image deduplication.
 - Live previews and navigator thumbnails, speaker notes, presentation mode, and self-contained reveal.js HTML/PDF export.
+- Editable PowerPoint export with native text, bullets, shapes and tables, SVG Mermaid pictures, and eight reusable Slide Master layouts.
+
+## PowerPoint export
+
+Choose **Export → PowerPoint…** to save a `.pptx` offline. Existing slides retain measured positions; text and tables remain editable. Mermaid diagrams become SVG pictures with PNG compatibility previews. Background pictures and translucent overlays are separate editable objects.
+
+In PowerPoint, choose **Home → New Slide** or **Layout** to find eight **SwiftReveal** layouts. **View → Slide Master** exposes their placeholders and panel designs. New slides inherit the deck palette and typography. Existing exported slides use independently positioned objects; applying another layout does not automatically reflow them.
+
+Fonts are not embedded: the default export uses Helvetica Neue, and custom CSS font families are retained. The receiving computer needs those fonts; substitution changes text metrics. Advanced CSS effects may differ. See [implementation, fidelity limits and testing](docs/POWERPOINT-EXPORT.md).
 
 ## Install
 
