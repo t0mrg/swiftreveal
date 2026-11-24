@@ -4,7 +4,7 @@ import CryptoKit
 /// One renderer is shared by editing, presentation, HTML export and PDF capture.
 /// User-authored markup is reconstructed by an allowlist sanitizer; scripts remain trusted-only.
 public enum HTMLRenderer {
-    private enum Mode { case preview, presentation, singleSlide }
+    private enum Mode { case preview, presentation, singleSlide, powerPoint }
 
     public static func preview(deck: Deck, slideIndex: Int) -> String {
         document(deck: deck, mode: .preview, index: slideIndex)
@@ -20,6 +20,11 @@ public enum HTMLRenderer {
         document(deck: deck, mode: .singleSlide, index: slideIndex)
     }
 
+    /// Dedicated offline export page: trusted bundled code, measured at the native canvas size.
+    public static func powerPointSlide(deck: Deck, slideIndex: Int) -> String {
+        document(deck: deck, mode: .powerPoint, index: slideIndex)
+    }
+
     private static func document(deck: Deck, mode: Mode, index: Int) -> String {
         let canvas = deck.effectiveAspectRatio
         let index = max(0, min(index, max(0, deck.slides.count - 1)))
@@ -31,6 +36,7 @@ public enum HTMLRenderer {
         let hasDiagrams = selectedSlides.contains { $0.1.blocks.contains { $0.kind == .mermaid } }
         let mermaidJS = hasDiagrams ? resource("mermaid.min", extension: "js") : ""
         let diagramScript = resource("mermaid-runtime", extension: "js")
+        let powerPointJS = mode == .powerPoint ? resource("powerpoint-runtime", extension: "js") : ""
         let mermaidLicense = hasDiagrams ? "<!-- Mermaid and bundled dependency licenses\n" + (resource("mermaid-LICENSE", extension: "") + "\n" + resource("mermaid-THIRD-PARTY-NOTICES", extension: "")).replacingOccurrences(of: "--", with: "- -") + "\n-->" : ""
         let slides = selectedSlides.map { number, slide in
             let markup = render(slide: slide, deck: deck, index: number)
@@ -142,7 +148,7 @@ public enum HTMLRenderer {
           return window.swiftRevealReport();
         })();
         """
-        let scriptPolicy = ([revealJS, runtimeScript] + (hasDiagrams ? [mermaidJS] : [])).map { "'sha256-" + Data(SHA256.hash(data: Data($0.utf8))).base64EncodedString() + "'" }.joined(separator: " ")
+        let scriptPolicy = ([revealJS, runtimeScript, powerPointJS] + (hasDiagrams ? [mermaidJS] : [])).map { "'sha256-" + Data(SHA256.hash(data: Data($0.utf8))).base64EncodedString() + "'" }.joined(separator: " ")
         return """
         <!doctype html>
         <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -152,11 +158,12 @@ public enum HTMLRenderer {
         \(mermaidLicense)
         <meta name="author" content="\(escape(deck.author))">
         <meta name="generator" content="SwiftReveal 0.5">
-        <style>\(revealCSS)\n\(themeCSS(deck.theme.palette))\n\(css(canvas))\n\(safeCSS(deck.customCSS ?? ""))</style></head>
+        <style>\(revealCSS)\n\(themeCSS(deck.theme.palette))\n\(css(canvas))\n\(mode == .powerPoint ? "html,body{font-family:'Helvetica Neue',Arial,sans-serif}" : "")\n\(safeCSS(deck.customCSS ?? ""))</style></head>
         <body class="sr-\(modeName) theme-\(deck.theme.rawValue)">\(wrap)
         <script>\(revealJS)</script>
         \(hasDiagrams ? "<script>" + mermaidJS + "</script>" : "")
-        <script>\(runtimeScript)</script></body></html>
+        <script>\(runtimeScript)</script>
+        \(mode == .powerPoint ? "<script>" + powerPointJS + "</script>" : "")</body></html>
         """
     }
 
